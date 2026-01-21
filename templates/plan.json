@@ -1,0 +1,65 @@
+{
+  "project": "PROJECT_NAME",
+  "branchName": "saga/FEATURE_NAME",
+  "description": "PROJECT_DESCRIPTION",
+  "createdAt": "TIMESTAMP",
+  "srsVersion": "1.0",
+  "epics": [
+    {
+      "id": "E-001",
+      "title": "EPIC_TITLE",
+      "description": "EPIC_DESCRIPTION",
+      "features": [
+        {
+          "id": "F-001",
+          "title": "FEATURE_TITLE",
+          "description": "FEATURE_DESCRIPTION",
+          "epicId": "E-001"
+        }
+      ]
+    }
+  ],
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "STORY_TITLE",
+      "description": "As a USER, I want FEATURE so that BENEFIT",
+      "acceptanceCriteria": [
+        "CRITERION_1",
+        "CRITERION_2",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "featureId": "F-001",
+      "epicId": "E-001",
+      "linkedRequirements": ["FR-001"],
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "STORY_TITLE",
+      "description": "As a USER, I want FEATURE so that BENEFIT",
+      "acceptanceCriteria": [
+        "CRITERION_1",
+        "CRITERION_2",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "featureId": "F-001",
+      "epicId": "E-001",
+      "linkedRequirements": ["FR-002"],
+      "notes": ""
+    }
+  ],
+  "settings": {
+    "tddRequired": true,
+    "autoPush": false,
+    "executionMode": "sequential",
+    "evaluatorEnabled": true,
+    "allowReorder": true,
+    "evaluateEveryNIterations": 3,
+    "maxRetries": 3
+  }
+}

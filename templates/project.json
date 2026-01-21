@@ -1,0 +1,39 @@
+{
+  "name": "PROJECT_NAME",
+  "description": "PROJECT_DESCRIPTION",
+  "createdAt": "TIMESTAMP",
+  "pm": {
+    "platform": "github",
+    "url": "https://github.com",
+    "project": "ORG/REPO",
+    "token_env": "GITHUB_TOKEN",
+    "workflow": {
+      "on_story_start": {
+        "create_issue": true,
+        "add_labels": ["in-progress", "saga"]
+      },
+      "on_story_complete": {
+        "close_issue": true,
+        "create_mr": false,
+        "add_labels": ["done"]
+      },
+      "on_story_blocked": {
+        "add_labels": ["blocked"],
+        "add_comment": true
+      },
+      "on_cr_created": {
+        "create_issue": true,
+        "add_labels": ["change-request"]
+      }
+    }
+  },
+  "settings": {
+    "tddRequired": true,
+    "autoPush": false,
+    "executionMode": "sequential",
+    "evaluatorEnabled": true,
+    "allowReorder": true,
+    "evaluateEveryNIterations": 3,
+    "maxRetries": 3
+  }
+}

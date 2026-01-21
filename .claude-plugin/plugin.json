@@ -1,0 +1,30 @@
+{
+  "name": "saga",
+  "version": "1.0.0",
+  "description": "SAGA - Structured Agile Governance Agent for requirements-driven development with full traceability",
+  "author": {
+    "name": "Nooqta"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/nooqta/saga",
+  "commands": [
+    "./commands/init.md",
+    "./commands/spec.md",
+    "./commands/plan.md",
+    "./commands/trace.md",
+    "./commands/diagram.md",
+    "./commands/execute.md",
+    "./commands/status.md",
+    "./commands/cr.md",
+    "./commands/gaps.md",
+    "./commands/sync.md",
+    "./commands/cancel.md"
+  ],
+  "skills": [
+    "./skills/srs-generation",
+    "./skills/diagram-generation",
+    "./skills/pm-workflow",
+    "./skills/story-execution",
+    "./skills/rlm-processing"
+  ]
+}

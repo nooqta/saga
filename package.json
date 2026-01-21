@@ -1,0 +1,30 @@
+{
+  "name": "saga",
+  "version": "1.0.0",
+  "description": "SAGA - Structured Agile Governance Agent for requirements-driven development with full traceability",
+  "author": {
+    "name": "Nooqta"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nooqta/saga.git"
+  },
+  "keywords": [
+    "claude-code",
+    "claude-plugin",
+    "requirements-management",
+    "agile",
+    "traceability",
+    "uml",
+    "github-integration",
+    "gitlab-integration",
+    "autonomous-coding",
+    "srs",
+    "project-management"
+  ],
+  "bugs": {
+    "url": "https://github.com/nooqta/saga/issues"
+  },
+  "homepage": "https://github.com/nooqta/saga#readme"
+}
