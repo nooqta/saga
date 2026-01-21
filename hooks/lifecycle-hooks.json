@@ -1,0 +1,141 @@
+{
+  "$schema": "../schemas/lifecycle-hooks.schema.json",
+  "lifecycle": {
+    "on_task_start": {
+      "enabled": true,
+      "description": "Fired before story-executor spawns",
+      "handlers": [
+        {
+          "type": "command",
+          "command": "${PROJECT_ROOT}/.saga/hooks/on-task-start.sh",
+          "optional": true,
+          "timeout": 30000
+        },
+        {
+          "type": "skill",
+          "skill": "saga:pm-workflow",
+          "action": "on_story_start",
+          "optional": true
+        }
+      ],
+      "contextSchema": {
+        "storyId": "string",
+        "title": "string",
+        "branch": "string",
+        "iteration": "number",
+        "priority": "number",
+        "acceptanceCriteria": "array",
+        "linkedRequirements": "array",
+        "featureId": "string",
+        "epicId": "string"
+      }
+    },
+    "on_task_completed": {
+      "enabled": true,
+      "description": "Fired after story passes all checks",
+      "handlers": [
+        {
+          "type": "command",
+          "command": "${PROJECT_ROOT}/.saga/hooks/on-task-completed.sh",
+          "optional": true,
+          "timeout": 30000
+        },
+        {
+          "type": "skill",
+          "skill": "saga:pm-workflow",
+          "action": "on_story_complete",
+          "optional": true
+        }
+      ],
+      "contextSchema": {
+        "storyId": "string",
+        "title": "string",
+        "commitHash": "string",
+        "filesChanged": "array",
+        "linkedRequirements": "array",
+        "metrics": {
+          "startedAt": "string",
+          "completedAt": "string",
+          "durationMs": "number",
+          "tokensConsumed": "number"
+        }
+      }
+    },
+    "on_task_blocked": {
+      "enabled": true,
+      "description": "Fired after max retries exceeded",
+      "handlers": [
+        {
+          "type": "command",
+          "command": "${PROJECT_ROOT}/.saga/hooks/on-task-blocked.sh",
+          "optional": true,
+          "timeout": 30000
+        },
+        {
+          "type": "skill",
+          "skill": "saga:pm-workflow",
+          "action": "on_story_blocked",
+          "optional": true
+        }
+      ],
+      "contextSchema": {
+        "storyId": "string",
+        "title": "string",
+        "blockedReason": "string",
+        "retryCount": "number",
+        "linkedRequirements": "array",
+        "errors": "array",
+        "lastAttempt": {
+          "startedAt": "string",
+          "completedAt": "string",
+          "error": "string"
+        }
+      }
+    },
+    "on_cr_created": {
+      "enabled": true,
+      "description": "Fired when a change request is created",
+      "handlers": [
+        {
+          "type": "skill",
+          "skill": "saga:pm-workflow",
+          "action": "on_cr_created",
+          "optional": true
+        }
+      ],
+      "contextSchema": {
+        "crId": "string",
+        "title": "string",
+        "description": "string",
+        "impact": {
+          "requirements": "array",
+          "features": "array",
+          "stories": "array"
+        }
+      }
+    },
+    "on_epic_complete": {
+      "enabled": true,
+      "description": "Fired when all stories in an epic are complete",
+      "handlers": [
+        {
+          "type": "skill",
+          "skill": "saga:pm-workflow",
+          "action": "on_epic_complete",
+          "optional": true
+        }
+      ],
+      "contextSchema": {
+        "epicId": "string",
+        "title": "string",
+        "storiesCompleted": "number",
+        "totalStories": "number"
+      }
+    }
+  },
+  "defaults": {
+    "optional": true,
+    "timeout": 30000,
+    "continueOnError": true
+  }
+}

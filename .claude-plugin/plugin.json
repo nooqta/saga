@@ -18,7 +18,8 @@
     "./commands/cr.md",
     "./commands/gaps.md",
     "./commands/sync.md",
-    "./commands/cancel.md"
+    "./commands/cancel.md",
+    "./commands/init-hooks.md"
   ],
   "skills": [
     "./skills/srs-generation",
