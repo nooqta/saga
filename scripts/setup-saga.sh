@@ -158,8 +158,25 @@ fi
 PROJECT=$(jq -r '.project // "Unknown"' "$PLAN_PATH")
 BRANCH=$(jq -r '.branchName // "saga/feature"' "$PLAN_PATH")
 DESCRIPTION=$(jq -r '.description // ""' "$PLAN_PATH")
-TOTAL_STORIES=$(jq '.userStories | length' "$PLAN_PATH")
-PASSING_STORIES=$(jq '[.userStories[] | select(.passes == true)] | length' "$PLAN_PATH")
+# Support both flat userStories and nested features[].stories structures
+TOTAL_STORIES=$(jq '
+  if .userStories then
+    .userStories | length
+  elif .features then
+    [.features[].stories // [] | .[]] | length
+  else
+    0
+  end
+' "$PLAN_PATH")
+PASSING_STORIES=$(jq '
+  if .userStories then
+    [.userStories[] | select(.passes == true)] | length
+  elif .features then
+    [.features[].stories // [] | .[] | select(.passes == true or .status == "completed" or .status == "done")] | length
+  else
+    0
+  end
+' "$PLAN_PATH")
 FAILING_STORIES=$((TOTAL_STORIES - PASSING_STORIES))
 
 # Read PM config if exists
