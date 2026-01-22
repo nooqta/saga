@@ -1,7 +1,7 @@
 ---
 description: "Start SAGA autonomous execution on a .saga/plan.json file"
 argument-hint: "[.saga/plan.json path] [--max-iterations N] [--mode sequential|parallel|full-parallel]"
-allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/setup-saga.sh:*)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/check-completion.sh:*)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/update-plan-status.sh:*)", "Task(saga:story-executor)", "Task(saga:evaluator)", "Skill(saga:pm-workflow)"]
+allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/setup-saga.sh:*)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/check-completion.sh:*)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/update-plan-status.sh:*)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/fire-hook.sh:*)", "Task(saga:story-executor)", "Task(saga:evaluator)", "Skill(saga:pm-workflow)"]
 ---
 
 # SAGA Orchestrator
@@ -67,11 +67,16 @@ iteration = current iteration number
 
 ### 4. FIRE on_task_start Hook + PM Sync
 
-If `.saga/hooks/on-task-start.sh` exists, execute it with story context via stdin:
+**MANDATORY**: Fire the on-task-start hook using the fire-hook.sh script:
 
-```bash
-echo '{"storyId":"US-001","title":"...","branch":"...","iteration":1}' | .saga/hooks/on-task-start.sh
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/fire-hook.sh" on-task-start '{"storyId":"[STORY_ID]","title":"[STORY_TITLE]","branch":"[BRANCH_NAME]","iteration":[ITERATION],"linkedRequirements":[REQUIREMENTS_ARRAY],"acceptanceCriteria":[CRITERIA_ARRAY]}'
 ```
+
+Replace placeholders with actual values from the story. This hook:
+- Logs hook execution to `/tmp/saga-hooks.log`
+- Queries compounding knowledge (if JS hooks installed)
+- Falls back to bash-based logging if JS unavailable
 
 **PM Integration**: If PM configured in project.json, invoke the pm-workflow skill:
 ```
@@ -145,10 +150,12 @@ tokensConsumed = from executor report
      }
    }
    ```
-3. FIRE `on_task_completed` hook:
-   ```bash
-   echo '{"storyId":"US-001","metrics":{...},"commitHash":"abc123"}' | .saga/hooks/on-task-completed.sh
+3. **MANDATORY**: FIRE `on_task_completed` hook using fire-hook.sh:
+   ```!
+   "${CLAUDE_PLUGIN_ROOT}/scripts/fire-hook.sh" on-task-completed '{"storyId":"[STORY_ID]","title":"[STORY_TITLE]","commitHash":"[COMMIT_HASH]","filesChanged":[FILES_ARRAY],"linkedRequirements":[REQUIREMENTS_ARRAY],"metrics":{"durationMs":[DURATION],"iteration":[ITERATION]}}'
    ```
+   This stores learnings in `.saga/knowledge/patterns.jsonl`.
+
 4. **PM Integration**: Invoke pm-workflow skill:
    ```
    Skill: saga:pm-workflow
@@ -165,28 +172,45 @@ tokensConsumed = from executor report
 2. Update story metrics with failed attempt
 3. If retryCount >= maxRetries:
    - Set `blockedReason` on story
-   - FIRE `on_task_blocked` hook:
-     ```bash
-     echo '{"storyId":"US-001","blockedReason":"...","retryCount":3}' | .saga/hooks/on-task-blocked.sh
+   - **MANDATORY**: FIRE `on_task_blocked` hook:
+     ```!
+     "${CLAUDE_PLUGIN_ROOT}/scripts/fire-hook.sh" on-task-blocked '{"storyId":"[STORY_ID]","title":"[STORY_TITLE]","blockedReason":"[REASON]","retryCount":[COUNT],"errors":[ERRORS_ARRAY],"linkedRequirements":[REQUIREMENTS_ARRAY]}'
      ```
+     This stores blocker info in `.saga/knowledge/blockers.jsonl`.
    - **PM Integration**: Invoke pm-workflow skill for blocked status
 4. Story will be retried on next iteration (unless blocked)
 
-### 8. SPAWN evaluator Agent (Optional)
+### 8. SPAWN evaluator Agent (Conditional)
 
-If `evaluatorEnabled` AND `iteration % evaluateEveryNIterations == 0`:
+**CHECK**: Spawn evaluator when ALL conditions are met:
+- `evaluatorEnabled` is true (check project.json settings)
+- `iteration % evaluateEveryNIterations == 0` (default: every 3rd iteration)
 
+**Example**: If `evaluateEveryNIterations: 3`:
+- Iteration 1: NO evaluator
+- Iteration 2: NO evaluator
+- Iteration 3: YES - spawn evaluator
+- Iteration 4: NO evaluator
+- Iteration 5: NO evaluator
+- Iteration 6: YES - spawn evaluator
+
+**When spawning:**
 ```
 Task tool parameters:
 - subagent_type: "saga:evaluator"
-- description: "Evaluate loop performance"
+- description: "Evaluate loop iteration [ITERATION]"
 - prompt: |
-    Evaluate the SAGA loop performance.
+    Evaluate the SAGA loop performance after iteration [ITERATION].
 
     plan.json path: [PLAN_PATH]
     progress.txt path: .saga/progress.txt
     trace.md path: .saga/trace.md
-    Last N iterations metrics: [METRICS_SUMMARY]
+
+    Current metrics:
+    - Stories attempted: [COUNT]
+    - Stories passed: [COUNT]
+    - Stories failed: [COUNT]
+    - Stories blocked: [COUNT]
 
     Assess:
     - Success rate
@@ -196,6 +220,8 @@ Task tool parameters:
     - Recommended story reordering
 
     Project allows reordering: [ALLOW_REORDER]
+
+    Return JSON with evaluation and recommendations.
 ```
 
 Apply any reordering recommendations if `allowReorder: true`.

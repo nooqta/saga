@@ -231,12 +231,37 @@ Store mappings in `.saga/pm-links.json`:
 }
 ```
 
+## Tool Availability Check
+
+Before making PM calls, check tool availability:
+
+### GitHub
+1. **MCP Tools** (preferred): Check for `mcp__plugin_github_github__*` tools
+2. **gh CLI** (fallback): `which gh && gh auth status`
+
+### GitLab
+1. **MCP Tools** (preferred): Check for `mcp__noqta_gitlab_server__*` tools
+2. **glab CLI** (fallback): `which glab && glab auth status`
+
+**If neither available:**
+```
+Warning: PM integration unavailable.
+GitHub: Install gh CLI or configure GitHub MCP
+GitLab: Install glab CLI or configure GitLab MCP
+Continuing without PM sync.
+```
+
 ## Error Handling
 
 **API Errors:**
 - Rate limiting: Wait and retry
 - Auth failures: Log warning, continue without PM sync
 - Network errors: Log warning, continue without PM sync
+
+**Tool Unavailable:**
+- MCP tools missing: Try CLI fallback
+- CLI not installed: Warn user, continue without PM sync
+- Both unavailable: Log warning, execution continues
 
 **Missing Configuration:**
 - If PM not configured, skip silently

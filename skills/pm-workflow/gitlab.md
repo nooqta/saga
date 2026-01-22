@@ -2,6 +2,38 @@
 
 Detailed patterns for GitLab integration in SAGA.
 
+## Tool Availability
+
+SAGA supports multiple methods for GitLab integration. Check availability in order:
+
+### Method 1: MCP Tools (Preferred)
+If `mcp__noqta_gitlab_server__*` tools are available, use them.
+
+**Check for availability:**
+- Look for MCP tools starting with `mcp__noqta_gitlab_server__`
+- These provide direct API access with better error handling
+
+### Method 2: glab CLI (Fallback)
+If MCP tools unavailable, use the GitLab CLI (`glab`).
+
+**Check for availability:**
+```bash
+which glab && glab auth status
+```
+
+If `glab` is not installed or authenticated:
+```
+Warning: GitLab CLI not available. Install with:
+  brew install glab    # macOS
+  apt install glab     # Debian/Ubuntu
+
+Then authenticate:
+  glab auth login
+```
+
+### Method 3: gh CLI with GitLab (Limited)
+GitHub CLI can work with GitLab Enterprise instances via environment variables.
+
 ## Authentication
 
 Token should be available via environment variable:
@@ -255,6 +287,65 @@ Parameters:
 - Slashes must be URL-encoded: `group/project` → `group%2Fproject`
 - Or use numeric project ID
 
+## glab CLI Fallback Patterns
+
+When MCP tools are unavailable, use these glab CLI commands:
+
+### Creating Issues
+
+```bash
+glab issue create \
+  --title "[US-001] Story Title" \
+  --description "## Story Details
+**ID:** US-001
+**Branch:** saga/feature
+
+## Description
+Story description here
+
+## Acceptance Criteria
+- [ ] Criterion 1
+- [ ] Criterion 2
+
+---
+*Managed by SAGA*" \
+  --label "saga,story,in-progress"
+```
+
+### Updating Issues
+
+```bash
+# Add labels
+glab issue update 123 --label "in-progress"
+
+# Close issue
+glab issue close 123
+
+# Add comment
+glab issue note 123 --message "Story completed. Commit: abc123"
+```
+
+### Creating Merge Requests
+
+```bash
+glab mr create \
+  --source-branch "saga/US-001" \
+  --target-branch "main" \
+  --title "[US-001] Story Title" \
+  --description "Closes #123" \
+  --remove-source-branch
+```
+
+### Listing Issues
+
+```bash
+# List SAGA issues
+glab issue list --label saga
+
+# Search by title
+glab issue list --search "US-001"
+```
+
 ## Label Setup
 
 Create labels via GitLab UI or API:
@@ -264,3 +355,26 @@ Create labels via GitLab UI or API:
 - `in-progress` - Yellow - "Work in progress"
 - `done` - Green - "Completed"
 - `blocked` - Red - "Blocked"
+
+## Troubleshooting
+
+### MCP Tools Not Found
+If `mcp__noqta_gitlab_server__*` tools are not available:
+1. Check if the noqta_gitlab_server MCP is configured
+2. Fall back to glab CLI commands
+3. Warn user about limited functionality
+
+### Authentication Issues
+```bash
+# Check glab authentication
+glab auth status
+
+# Re-authenticate
+glab auth login --hostname gitlab.example.com
+```
+
+### Project Detection
+```bash
+# Get current project from git remote
+git remote get-url origin | sed 's/.*gitlab.com[:/]\(.*\)\.git/\1/'
+```

@@ -14,7 +14,7 @@ You are initializing a new SAGA project. Guide the user through setup with a con
 First, create the `.saga/` directory structure:
 
 ```bash
-mkdir -p .saga/diagrams .saga/changes .saga/hooks
+mkdir -p .saga/diagrams .saga/changes .saga/hooks .saga/knowledge
 ```
 
 ### 2. Gather Project Information
@@ -180,12 +180,35 @@ Files created:
   .saga/project.json    - Project configuration
   .saga/srs.md          - SRS template (run /saga spec to populate)
   .saga/progress.txt    - Progress tracking
+  .saga/knowledge/      - Knowledge accumulation directory
 
 Next steps:
-  1. /saga spec         - Generate Software Requirements Specification
-  2. /saga plan         - Create Epic/Feature/Story hierarchy
-  3. /saga execute      - Start autonomous execution
+  1. /saga init-hooks   - Set up lifecycle hooks (recommended)
+  2. /saga spec         - Generate Software Requirements Specification
+  3. /saga plan         - Create Epic/Feature/Story hierarchy
+  4. /saga execute      - Start autonomous execution
 ```
+
+### 8. Offer to Initialize Hooks
+
+**IMPORTANT**: Ask the user if they want to set up lifecycle hooks now:
+
+> "Would you like me to initialize lifecycle hooks? This enables:
+> - Compounding knowledge across task executions
+> - PM tool integration (GitHub/GitLab issue management)
+> - Hook-based automation
+>
+> Run `/saga init-hooks` now? (recommended)"
+
+If user agrees, invoke the Skill tool:
+```
+Skill: saga:init-hooks
+```
+
+This creates JavaScript hooks in `.saga/hooks/` that:
+- Query past learnings before each task
+- Store patterns after successful tasks
+- Record blockers for future reference
 
 ## Default Workflow Presets
 
