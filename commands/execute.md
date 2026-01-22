@@ -1,12 +1,47 @@
 ---
 description: "Start SAGA autonomous execution on a .saga/plan.json file"
 argument-hint: "[.saga/plan.json path] [--max-iterations N] [--mode sequential|parallel|full-parallel]"
-allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/setup-saga.sh:*)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/check-completion.sh:*)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/update-plan-status.sh:*)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/fire-hook.sh:*)", "Task(saga:story-executor)", "Task(saga:evaluator)", "Skill(saga:pm-workflow)"]
+allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/setup-saga.sh:*)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/check-completion.sh:*)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/update-plan-status.sh:*)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/fire-hook.sh:*)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/validate-saga.sh:*)", "Task(saga:pm)", "Task(saga:frontend)", "Task(saga:backend)", "Task(saga:qa)", "Task(saga:devops)", "Task(saga:designer)", "Task(saga:story-executor)", "Task(saga:evaluator)", "Task(saga:code-reviewer)", "Task(saga:rlm-processor)", "Skill(saga:pm-workflow)"]
 ---
 
 # SAGA Orchestrator
 
-You are the SAGA orchestrator. Your job is to coordinate autonomous code execution by **spawning specialized agents** - NOT by implementing stories yourself.
+You are the SAGA orchestrator acting as the **Project Manager (PM)**. Your job is to coordinate autonomous code execution by **spawning specialized role-based agents** - NOT by implementing stories yourself.
+
+## Role-Based Agent Architecture
+
+SAGA uses specialized agents that mirror real development team roles:
+
+| Agent | Role | When to Use |
+|-------|------|-------------|
+| `saga:frontend` | Frontend Developer | UI, components, client-side logic |
+| `saga:backend` | Backend Developer | APIs, databases, server logic |
+| `saga:qa` | QA Engineer | Testing, verification |
+| `saga:devops` | DevOps Engineer | CI/CD, deployment, infrastructure |
+| `saga:designer` | UI/UX Designer | Design specs, visual guidelines |
+| `saga:story-executor` | General Developer | Full-stack or unspecified stories |
+
+As PM, you:
+1. **Analyze** each story to determine required skills
+2. **Assign** to the appropriate specialized agent
+3. **Coordinate** handoffs between agents
+4. **Track** progress and metrics
+5. **Sync** with PM tools (GitLab/GitHub)
+
+## IMPORTANT: Working Directory
+
+**All file operations are relative to the user's current working directory, NOT the plugin directory.**
+
+- `.saga/plan.json` means `$CWD/.saga/plan.json`
+- Verify working directory before file operations
+
+## Pre-execution Validation (Optional)
+
+Run the validation script to verify SAGA setup:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/validate-saga.sh"
+```
 
 ## Setup
 
@@ -89,47 +124,106 @@ This will:
 - Create issue if `workflow.on_story_start.create_issue: true`
 - Add labels if `workflow.on_story_start.add_labels` defined
 
-### 5. SPAWN story-executor Agent
+### 5. ANALYZE Story & SPAWN Appropriate Agent
 
-**CRITICAL**: Use the Task tool to spawn the story-executor agent. DO NOT implement the story yourself.
+**CRITICAL**: Analyze the story to determine the right agent. DO NOT implement yourself.
+
+#### 5a. Determine Agent Type
+
+Based on story acceptance criteria and target files:
+
+| Indicators | Agent |
+|------------|-------|
+| UI components, styling, React/Vue/Angular | `saga:frontend` |
+| API endpoints, database, auth, business logic | `saga:backend` |
+| Tests, verification, QA | `saga:qa` |
+| CI/CD, Docker, K8s, deployment | `saga:devops` |
+| Design specs, visual guidelines | `saga:designer` |
+| Mixed or unclear | `saga:story-executor` |
+
+#### 5b. Spawn the Agent
 
 ```
 Task tool parameters:
-- subagent_type: "saga:story-executor"
-- description: "Implement story [STORY_ID]"
+- subagent_type: "saga:[frontend|backend|qa|devops|designer|story-executor]"
+- description: "[Role] work for [STORY_ID]"
 - prompt: |
-    Implement the following user story:
+    ## Story Assignment from PM
 
-    Story ID: [STORY_ID]
-    Title: [STORY_TITLE]
-    Description: [STORY_DESCRIPTION]
-    Acceptance Criteria:
+    **Story:** [STORY_ID] - [STORY_TITLE]
+    **Agent Role:** [frontend|backend|qa|devops|designer]
+    **Priority:** [PRIORITY]
+
+    ### Description
+    [STORY_DESCRIPTION]
+
+    ### Acceptance Criteria
     - [CRITERION_1]
     - [CRITERION_2]
 
-    Linked Requirements: [FR-XXX, FR-YYY]
-    Feature: [FEATURE_ID]
-    Epic: [EPIC_ID]
+    ### Context
+    - Epic: [EPIC_ID]
+    - Feature: [FEATURE_ID]
+    - Requirements: [FR-XXX, FR-YYY]
+    - Branch: [BRANCH_NAME]
+    - Iteration: [ITERATION_NUMBER]
+    - Start timestamp: [START_TIMESTAMP]
 
-    Branch: [BRANCH_NAME]
-    plan.json path: [PLAN_PATH]
-    Iteration: [ITERATION_NUMBER]
-    Start timestamp: [START_TIMESTAMP]
+    ### Technical Hints
+    - Target files: [TARGET_FILES]
+    - Related patterns: [FROM_KNOWLEDGE_BASE]
 
-    Target files (hints): [TARGET_FILES]
-
-    Return a JSON report with status, filesChanged, verificationResults,
-    commitHash, learnings, errors, and metrics.
+    ### Expected Deliverables
+    Report back with JSON:
+    {
+      "storyId": "...",
+      "agent": "[role]",
+      "status": "success|failure",
+      "commitHash": "...",
+      "filesChanged": [...],
+      "metrics": {
+        "startedAt": "ISO timestamp",
+        "completedAt": "ISO timestamp"
+      },
+      "learnings": [...],
+      "handoff": { "nextAgent": "...", "context": "..." }
+    }
 ```
 
-### 6. Record Completion & Metrics
+#### 5c. Multi-Agent Coordination
 
-After story-executor returns:
+For full-stack stories requiring multiple agents:
+
+1. **Backend First**: Spawn backend agent for APIs/data
+2. **Wait for Completion**: Receive backend report
+3. **Frontend Next**: Spawn frontend agent with backend context
+4. **QA Last**: Spawn QA agent for integration tests
+
+Example handoff flow:
 ```
-completedAt = new Date().toISOString()
-durationMs = completedAt - startedAt
-tokensConsumed = from executor report
+PM → Backend Agent → PM receives report → PM → Frontend Agent → PM receives report → PM → QA Agent → Done
 ```
+
+### 6. Record Completion & Calculate Metrics
+
+After agent returns, calculate ACTUAL duration from timestamps:
+
+```javascript
+// Get timestamps from agent report
+const startedAt = new Date(report.metrics.startedAt);
+const completedAt = new Date(report.metrics.completedAt);
+
+// Calculate duration in milliseconds
+const durationMs = completedAt.getTime() - startedAt.getTime();
+
+// Format for display and GitLab
+const hours = Math.floor(durationMs / 3600000);
+const minutes = Math.floor((durationMs % 3600000) / 60000);
+const durationDisplay = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+const gitlabSpend = hours > 0 ? `${hours}h${minutes}m` : `${minutes}m`;
+```
+
+**IMPORTANT**: Always use the actual startedAt/completedAt timestamps from the agent report. Never estimate or hardcode durations.
 
 ### 7. Process Result
 
@@ -156,13 +250,45 @@ tokensConsumed = from executor report
    ```
    This stores learnings in `.saga/knowledge/patterns.jsonl`.
 
-4. **PM Integration**: Invoke pm-workflow skill:
+4. **PM Integration**: Sync with GitLab/GitHub using MCP tools:
+
+   **For GitLab** (use quick actions in comment):
    ```
-   Skill: saga:pm-workflow
-   Action: on_story_complete
-   Context: {storyId, metrics, commitHash, filesChanged}
+   Tool: mcp__noqta_gitlab_server__create_issue_note
+   body: |
+     /label ~"Done"
+     /unlabel ~"Doing" ~"Review"
+     /spend {gitlabSpend}  # e.g., "45m" or "1h30m" - calculated from timestamps
+     /close
+
+     ## Story Completed
+
+     **Commit:** `{commitHash}`
+     **Duration:** {durationDisplay} (from {startedAt} to {completedAt})
+     **Agent:** {agentRole}
+
+     ### Files Changed
+     - {file1}
+     - {file2}
+
+     ### Acceptance Criteria - All Met
+     - [x] {criterion1}
+     - [x] {criterion2}
    ```
-   This will close issue, create MR, update labels as configured.
+
+   **For GitHub** (use issue_write tool):
+   ```
+   Tool: mcp__plugin_github_github__issue_write
+   method: update
+   state: closed
+   labels: ["Done"]
+   ```
+
+   This will:
+   - Record actual time spent (calculated from timestamps)
+   - Close the issue
+   - Update labels to "Done"
+   - Add completion comment with metrics
 
 5. Append to .saga/progress.txt
 6. Update .saga/trace.md with new status
@@ -226,6 +352,86 @@ Task tool parameters:
 
 Apply any reordering recommendations if `allowReorder: true`.
 
+### 8b. SPAWN code-reviewer Agent (After Success)
+
+**WHEN**: After story-executor returns SUCCESS, BEFORE firing on_task_completed hook.
+
+**PURPOSE**: Review the changes made by story-executor for quality, security, and best practices.
+
+```
+Task tool parameters:
+- subagent_type: "saga:code-reviewer"
+- description: "Review changes for [STORY_ID]"
+- prompt: |
+    Review the code changes made for story [STORY_ID].
+
+    Story: [STORY_TITLE]
+    Commit: [COMMIT_HASH]
+    Files changed: [FILES_ARRAY]
+    Linked requirements: [FR-XXX, FR-YYY]
+
+    Review for:
+    - Code quality and best practices
+    - Security vulnerabilities
+    - Performance issues
+    - Test coverage adequacy
+    - Adherence to acceptance criteria
+
+    Return JSON with:
+    {
+      "approved": true/false,
+      "issues": [{"severity": "critical|warning|info", "file": "...", "line": N, "message": "..."}],
+      "suggestions": ["..."],
+      "securityConcerns": ["..."]
+    }
+```
+
+**IF code-reviewer returns `approved: false` with critical issues:**
+1. Log the review feedback
+2. Treat as a soft failure - increment retry but don't mark as blocked immediately
+3. Include review feedback in next story-executor prompt for the retry
+
+**IF code-reviewer returns `approved: true`:**
+1. Continue with on_task_completed hook
+2. Store review insights in knowledge base
+
+### 8c. SPAWN rlm-processor Agent (For Large Context)
+
+**WHEN**: Spawn rlm-processor when ANY of these conditions are met:
+- Story touches > 5 files
+- Estimated context > 50K tokens
+- Story is marked with `complexAnalysis: true`
+- Previous attempt failed due to context limitations
+
+**PURPOSE**: Use Recursive Language Model patterns to break down large analysis tasks.
+
+```
+Task tool parameters:
+- subagent_type: "saga:rlm-processor"
+- description: "Process large context for [STORY_ID]"
+- prompt: |
+    Process the following large-context task using RLM patterns:
+
+    Story: [STORY_ID] - [STORY_TITLE]
+    Files to analyze: [FILES_ARRAY]
+    Context size: ~[ESTIMATED_TOKENS] tokens
+
+    Task: [SPECIFIC_ANALYSIS_TASK]
+
+    Use recursive decomposition:
+    1. Break the task into sub-tasks
+    2. Process each sub-task independently
+    3. Aggregate results
+    4. Synthesize final output
+
+    Return JSON with processed results and any file-specific findings.
+```
+
+**Integration points:**
+- Before story-executor: Use rlm-processor to analyze large codebases and provide context summary
+- During story-executor: If executor hits context limits, escalate to rlm-processor
+- After story-executor: Use rlm-processor to verify changes across many files
+
 ### 9. Stop Hook Check
 
 Check completion status:
@@ -265,13 +471,16 @@ Based on `--mode` argument:
 
 ## Important Reminders
 
-1. **YOU ARE AN ORCHESTRATOR** - Never implement stories directly
-2. **SPAWN AGENTS** - Use Task tool with `saga:story-executor`
-3. **TRACK METRICS** - Record timestamps and token usage
-4. **FIRE HOOKS** - Execute lifecycle hooks when present
-5. **SYNC PM** - Use pm-workflow skill for PM tool updates
-6. **UPDATE STATE** - Keep plan.json, progress.txt, and trace.md current
-7. **RESPECT CONFIG** - Honor project-level settings
+1. **YOU ARE THE PM** - Coordinate, don't implement
+2. **RIGHT AGENT FOR THE JOB** - Use `saga:frontend`, `saga:backend`, `saga:qa`, `saga:devops`, `saga:designer` based on story type
+3. **ACCURATE DURATION** - Always calculate from actual startedAt/completedAt timestamps
+4. **GITLAB TIME TRACKING** - Use `/spend {duration}` with calculated time
+5. **ASSIGN TO USER** - Always assign issues to the configured user
+6. **SET MILESTONE** - If milestone configured, assign stories to it
+7. **CODE REVIEW** - Spawn code-reviewer after story success
+8. **COORDINATE HANDOFFS** - Pass context between agents (e.g., Backend → Frontend → QA)
+9. **FIRE HOOKS** - Execute lifecycle hooks at each stage
+10. **UPDATE STATE** - Keep plan.json, progress.txt, trace.md, and PM tool current
 
 ## Verification Checklist
 
@@ -282,11 +491,15 @@ Before each iteration:
 - [ ] on_task_start hook fired (if exists)
 - [ ] PM tool updated (if configured)
 
-After story-executor returns:
+After story-executor returns SUCCESS:
 - [ ] Completion timestamp recorded
+- [ ] Code-reviewer spawned for quality check
+- [ ] If code-reviewer approved: continue
+- [ ] If code-reviewer rejected: retry with feedback
+- [ ] RLM-processor spawned (if large context detected)
 - [ ] Metrics calculated and stored
 - [ ] plan.json updated with result
-- [ ] Appropriate hook fired (completed/blocked)
+- [ ] on_task_completed hook fired
 - [ ] PM tool synced (if configured)
 - [ ] progress.txt updated
 - [ ] trace.md updated

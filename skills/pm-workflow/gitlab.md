@@ -21,19 +21,6 @@ If MCP tools unavailable, use the GitLab CLI (`glab`).
 which glab && glab auth status
 ```
 
-If `glab` is not installed or authenticated:
-```
-Warning: GitLab CLI not available. Install with:
-  brew install glab    # macOS
-  apt install glab     # Debian/Ubuntu
-
-Then authenticate:
-  glab auth login
-```
-
-### Method 3: gh CLI with GitLab (Limited)
-GitHub CLI can work with GitLab Enterprise instances via environment variables.
-
 ## Authentication
 
 Token should be available via environment variable:
@@ -53,9 +40,108 @@ Parameters:
   git_url: {git remote URL}
 ```
 
+## Time Tracking & Assignment
+
+### Duration Calculation
+
+**IMPORTANT**: Always calculate duration from actual timestamps stored in plan.json metrics:
+
+```javascript
+// From plan.json story metrics
+const startedAt = new Date(story.metrics.attempts[i].startedAt);
+const completedAt = new Date(story.metrics.attempts[i].completedAt);
+const durationMs = completedAt - startedAt;
+
+// Format for display
+const hours = Math.floor(durationMs / 3600000);
+const minutes = Math.floor((durationMs % 3600000) / 60000);
+const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+// Format for GitLab /spend command
+const spendStr = hours > 0 ? `${hours}h${minutes}m` : `${minutes}m`;
+```
+
+### Time Tracking via Quick Actions
+
+GitLab supports quick actions in issue comments. Use these for time tracking:
+
+**Add Time Estimate:**
+```
+/estimate 2h
+```
+
+**Record Time Spent:**
+```
+/spend 1h30m
+```
+
+**Remove Estimate:**
+```
+/remove_estimate
+```
+
+**Remove Spent:**
+```
+/remove_time_spent
+```
+
+### Milestone Assignment
+
+If a milestone is configured or active, assign stories to it:
+
+```
+Tool: mcp__noqta_gitlab_server__update_issue
+Parameters:
+  project_id: {projectId}
+  issue_iid: {issueIID}
+  milestone_id: {milestoneId}  # From project.json pm.milestone
+```
+
+Or via quick action in comment:
+```
+/milestone %"Sprint 5"
+```
+
+### User Assignment
+
+**ALWAYS assign issues to the authenticated user:**
+
+```
+Tool: mcp__noqta_gitlab_server__update_issue
+Parameters:
+  project_id: {projectId}
+  issue_iid: {issueIID}
+  assignee_ids: [{userId}]  # From pm.assignee_id or search_user
+```
+
+Or via quick action:
+```
+/assign @username
+/assign me
+```
+
+### Combined Quick Actions Comment
+
+For maximum efficiency, combine actions in a single comment:
+
+```
+Tool: mcp__noqta_gitlab_server__create_issue_note
+Parameters:
+  project_id: {projectId}
+  issue_iid: {issueIID}
+  body: |
+    /assign me
+    /milestone %"Current Sprint"
+    /estimate 2h
+    /label ~"Doing"
+    /unlabel ~"To Do"
+
+    Starting work on this story.
+```
+
 ## Creating Issues
 
-### Story Issue
+### Story Issue with Full Metadata
 
 ```
 Tool: mcp__noqta_gitlab_server__create_issue
@@ -69,6 +155,7 @@ Parameters:
     **Epic:** {epicId}
     **Feature:** {featureId}
     **Branch:** `{branch}`
+    **Assigned:** @{assignee}
 
     ## Description
 
@@ -86,6 +173,11 @@ Parameters:
     - {requirementId}: {requirementTitle}
     {end for}
 
+    ## Estimates
+
+    - **Estimated:** {estimate or "TBD"}
+    - **Story Points:** {points or "N/A"}
+
     ## Traceability
 
     - SRS: `.saga/srs.md`
@@ -94,7 +186,9 @@ Parameters:
 
     ---
     *This issue is managed by SAGA. Do not modify labels manually.*
-  labels: "saga,story"
+  labels: "saga,story,To Do"
+  assignee_ids: [{userId}]
+  milestone_id: {milestoneId}  # if available
 ```
 
 ### Change Request Issue
@@ -128,47 +222,13 @@ Parameters:
 
     ---
     *This is a SAGA change request.*
-  labels: "saga,change-request"
+  labels: "saga,change-request,To Do"
+  assignee_ids: [{userId}]
 ```
 
 ## Updating Issues
 
-### Mark In Progress
-
-```
-Tool: mcp__noqta_gitlab_server__update_issue
-Parameters:
-  project_id: {projectId}
-  issue_iid: {issueIID from pm-links.json}
-  add_labels: "in-progress"
-```
-
-### Mark Complete
-
-```
-Tool: mcp__noqta_gitlab_server__update_issue
-Parameters:
-  project_id: {projectId}
-  issue_iid: {issueIID}
-  state_event: close
-  remove_labels: "in-progress"
-  add_labels: "done"
-```
-
-### Mark Blocked
-
-```
-Tool: mcp__noqta_gitlab_server__update_issue
-Parameters:
-  project_id: {projectId}
-  issue_iid: {issueIID}
-  remove_labels: "in-progress"
-  add_labels: "blocked"
-```
-
-## Adding Comments (Notes)
-
-### Completion Comment
+### Mark In Progress (Story Start)
 
 ```
 Tool: mcp__noqta_gitlab_server__create_issue_note
@@ -176,25 +236,71 @@ Parameters:
   project_id: {projectId}
   issue_iid: {issueIID}
   body: |
-    ## Story Completed ✅
+    /label ~"Doing"
+    /unlabel ~"To Do"
+    /estimate {estimatedDuration}
+
+    **Starting iteration {iteration}**
+    - Branch: `{branch}`
+    - Agent: {agentRole}
+    - Started: {timestamp}
+```
+
+### Mark In Review (Code Review)
+
+```
+Tool: mcp__noqta_gitlab_server__create_issue_note
+Parameters:
+  project_id: {projectId}
+  issue_iid: {issueIID}
+  body: |
+    /label ~"Review"
+    /unlabel ~"Doing"
+
+    Code ready for review.
+    - Commit: `{commitHash}`
+    - Files changed: {fileCount}
+```
+
+### Mark Complete
+
+```
+Tool: mcp__noqta_gitlab_server__create_issue_note
+Parameters:
+  project_id: {projectId}
+  issue_iid: {issueIID}
+  body: |
+    /label ~"Done"
+    /unlabel ~"Doing" ~"Review"
+    /spend {actualDuration}
+    /close
+
+    ## Story Completed
 
     **Commit:** `{commitHash}`
-    **Duration:** {duration}
-    **Tokens Used:** {tokens}
+    **Duration:** {durationStr} (calculated from {startedAt} to {completedAt})
+    **Iteration:** {iteration}
 
     ### Files Changed
     {for each file}
     - `{filePath}`
     {end for}
 
-    ### Learnings
-    {learnings if any}
+    ### Acceptance Criteria - All Met
+    {for each criterion}
+    - [x] {criterion}
+    {end for}
+
+    ### Agent Report
+    - **Agent:** {agentRole}
+    - **Tokens Used:** {tokens}
+    - **Learnings:** {learnings}
 
     ---
     *Completed by SAGA at {timestamp}*
 ```
 
-### Blocked Comment
+### Mark Blocked
 
 ```
 Tool: mcp__noqta_gitlab_server__create_issue_note
@@ -202,10 +308,15 @@ Parameters:
   project_id: {projectId}
   issue_iid: {issueIID}
   body: |
-    ## Story Blocked 🚫
+    /label ~"On Hold"
+    /unlabel ~"Doing"
+    /spend {timeSpentSoFar}
+
+    ## Story Blocked
 
     **Reason:** {blockedReason}
     **Attempts:** {retryCount}
+    **Time Spent:** {timeSpentSoFar}
 
     ### Errors Encountered
     {for each error}
@@ -235,6 +346,9 @@ Parameters:
 
     Implements {storyId}: {storyTitle}
 
+    **Time Spent:** {actualDuration}
+    **Agent:** {agentRole}
+
     ## Changes
 
     {for each file}
@@ -254,6 +368,63 @@ Parameters:
 
     ---
     *Created by SAGA*
+  assignee_id: {userId}
+  reviewer_ids: [{reviewerIds}]
+```
+
+## Project Configuration
+
+Enhanced `.saga/project.json` structure:
+
+```json
+{
+  "pm": {
+    "platform": "gitlab",
+    "url": "https://gitlab.noqta.tn",
+    "project": "group/project",
+    "projectId": 260,
+    "token_env": "GITLAB_TOKEN",
+    "assignee": "marrouchi",
+    "assignee_id": 1,
+    "milestone": "Sprint 5",
+    "milestone_id": 12,
+    "default_estimate": "2h",
+    "labels": {
+      "todo": "To Do",
+      "doing": "Doing",
+      "review": "Review",
+      "blocked": "On Hold",
+      "done": "Done"
+    },
+    "workflow": {
+      "on_story_start": {
+        "create_issue": true,
+        "assign_to_me": true,
+        "set_milestone": true,
+        "add_estimate": true,
+        "add_labels": ["Doing"],
+        "remove_labels": ["To Do"]
+      },
+      "on_story_complete": {
+        "close_issue": true,
+        "record_time_spent": true,
+        "create_mr": false,
+        "add_labels": ["Done"],
+        "remove_labels": ["Doing", "Review"]
+      },
+      "on_story_blocked": {
+        "add_labels": ["On Hold"],
+        "remove_labels": ["Doing"],
+        "add_comment": true,
+        "record_time_spent": true
+      },
+      "on_code_review": {
+        "add_labels": ["Review"],
+        "remove_labels": ["Doing"]
+      }
+    }
+  }
+}
 ```
 
 ## Listing Issues
@@ -273,108 +444,41 @@ Parameters:
 ### Labels
 - GitLab labels are comma-separated strings, not arrays
 - Labels are scoped to project (create them first if needed)
+- Use `~"Label Name"` syntax for labels with spaces
 
 ### Issue IID vs ID
 - `iid`: Internal ID within the project (use this)
 - `id`: Global ID across all GitLab
 
-### Merge Request vs Pull Request
-- GitLab uses "Merge Request" (MR)
-- GitHub uses "Pull Request" (PR)
-- SAGA config uses `create_mr` for both
+### Quick Actions Reference
+- `/assign @user` - Assign to user
+- `/milestone %"name"` - Set milestone
+- `/estimate Xh` - Set time estimate
+- `/spend Xh` - Record time spent
+- `/label ~"name"` - Add label
+- `/unlabel ~"name"` - Remove label
+- `/close` - Close issue
+- `/reopen` - Reopen issue
+- `/due YYYY-MM-DD` - Set due date
 
-### Project Path Encoding
-- Slashes must be URL-encoded: `group/project` → `group%2Fproject`
-- Or use numeric project ID
+### Time Format
+- Hours: `1h`, `2h30m`
+- Minutes: `30m`, `45m`
+- Days: `1d` (8 hours)
+- Weeks: `1w` (40 hours)
 
-## glab CLI Fallback Patterns
+## Error Handling
 
-When MCP tools are unavailable, use these glab CLI commands:
+### API Errors
+- Rate limiting: Wait and retry
+- Auth failures: Log warning, continue without PM sync
+- Network errors: Log warning, continue without PM sync
 
-### Creating Issues
+### Tool Unavailable
+- MCP tools missing: Try glab CLI fallback
+- CLI not installed: Warn user, continue without PM sync
+- Both unavailable: Log warning, execution continues
 
-```bash
-glab issue create \
-  --title "[US-001] Story Title" \
-  --description "## Story Details
-**ID:** US-001
-**Branch:** saga/feature
-
-## Description
-Story description here
-
-## Acceptance Criteria
-- [ ] Criterion 1
-- [ ] Criterion 2
-
----
-*Managed by SAGA*" \
-  --label "saga,story,in-progress"
-```
-
-### Updating Issues
-
-```bash
-# Add labels
-glab issue update 123 --label "in-progress"
-
-# Close issue
-glab issue close 123
-
-# Add comment
-glab issue note 123 --message "Story completed. Commit: abc123"
-```
-
-### Creating Merge Requests
-
-```bash
-glab mr create \
-  --source-branch "saga/US-001" \
-  --target-branch "main" \
-  --title "[US-001] Story Title" \
-  --description "Closes #123" \
-  --remove-source-branch
-```
-
-### Listing Issues
-
-```bash
-# List SAGA issues
-glab issue list --label saga
-
-# Search by title
-glab issue list --search "US-001"
-```
-
-## Label Setup
-
-Create labels via GitLab UI or API:
-- `saga` - Blue - "Managed by SAGA"
-- `story` - Green - "User story"
-- `change-request` - Orange - "Change request"
-- `in-progress` - Yellow - "Work in progress"
-- `done` - Green - "Completed"
-- `blocked` - Red - "Blocked"
-
-## Troubleshooting
-
-### MCP Tools Not Found
-If `mcp__noqta_gitlab_server__*` tools are not available:
-1. Check if the noqta_gitlab_server MCP is configured
-2. Fall back to glab CLI commands
-3. Warn user about limited functionality
-
-### Authentication Issues
-```bash
-# Check glab authentication
-glab auth status
-
-# Re-authenticate
-glab auth login --hostname gitlab.example.com
-```
-
-### Project Detection
-```bash
-# Get current project from git remote
-git remote get-url origin | sed 's/.*gitlab.com[:/]\(.*\)\.git/\1/'
-```
+### Missing Configuration
+- If PM not configured, skip silently
+- If token missing, warn user

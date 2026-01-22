@@ -3,27 +3,52 @@
   "description": "PROJECT_DESCRIPTION",
   "createdAt": "TIMESTAMP",
   "pm": {
-    "platform": "github",
+    "platform": "github|gitlab",
     "url": "https://github.com",
     "project": "ORG/REPO",
-    "token_env": "GITHUB_TOKEN",
+    "projectId": null,
+    "token_env": "GITHUB_TOKEN|GITLAB_TOKEN",
+    "assignee": "USERNAME",
+    "assignee_id": null,
+    "milestone": null,
+    "milestone_id": null,
+    "default_estimate": "2h",
+    "labels": {
+      "todo": "To Do",
+      "doing": "Doing",
+      "review": "Review",
+      "blocked": "On Hold",
+      "done": "Done"
+    },
     "workflow": {
       "on_story_start": {
         "create_issue": true,
-        "add_labels": ["in-progress", "saga"]
+        "assign_to_me": true,
+        "set_milestone": true,
+        "add_estimate": true,
+        "add_labels": ["Doing"],
+        "remove_labels": ["To Do"]
       },
       "on_story_complete": {
         "close_issue": true,
+        "record_time_spent": true,
         "create_mr": false,
-        "add_labels": ["done"]
+        "add_labels": ["Done"],
+        "remove_labels": ["Doing", "Review"]
       },
       "on_story_blocked": {
-        "add_labels": ["blocked"],
-        "add_comment": true
+        "add_labels": ["On Hold"],
+        "remove_labels": ["Doing"],
+        "add_comment": true,
+        "record_time_spent": true
+      },
+      "on_code_review": {
+        "add_labels": ["Review"],
+        "remove_labels": ["Doing"]
       },
       "on_cr_created": {
         "create_issue": true,
-        "add_labels": ["change-request"]
+        "add_labels": ["change-request", "To Do"]
       }
     }
   },

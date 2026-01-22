@@ -38,9 +38,9 @@ store_knowledge_fallback() {
   local entry="$2"
   local filepath="$KNOWLEDGE_DIR/$filename"
 
-  # Add timestamp to entry
+  # Add timestamp to entry (use -c for compact single-line JSONL format)
   local timestamped
-  timestamped=$(echo "$entry" | jq --arg ts "$(date -Iseconds)" '. + {timestamp: $ts}')
+  timestamped=$(echo "$entry" | jq -c --arg ts "$(date -Iseconds)" '. + {timestamp: $ts}')
 
   echo "$timestamped" >> "$filepath"
   log_hook "KNOWLEDGE" "Stored entry in $filename"
@@ -51,20 +51,15 @@ execute_hook() {
   local hook_js="$HOOKS_DIR/${HOOK_NAME}.js"
   local hook_sh="$HOOKS_DIR/${HOOK_NAME}.sh"
 
-  # Try JS hook first
+  # Try JS hook first (hooks use native Node.js modules only, no npm install needed)
   if [[ -f "$hook_js" && -x "$hook_js" ]]; then
     log_hook "EXECUTING" "JS hook $hook_js"
 
-    # Check if node_modules exists
-    if [[ -d "$HOOKS_DIR/node_modules" ]]; then
-      if echo "$CONTEXT" | "$hook_js" 2>>"$HOOK_LOG"; then
-        log_hook "SUCCESS" "JS hook completed"
-        return 0
-      else
-        log_hook "FAILED" "JS hook failed, trying fallback"
-      fi
+    if echo "$CONTEXT" | "$hook_js" 2>>"$HOOK_LOG"; then
+      log_hook "SUCCESS" "JS hook completed"
+      return 0
     else
-      log_hook "SKIPPED" "node_modules not installed, using fallback"
+      log_hook "FAILED" "JS hook failed, trying fallback"
     fi
   fi
 
@@ -107,10 +102,12 @@ handle_fallback() {
       local commit_hash
       local files_changed
       local linked_reqs
+      local duration_ms
 
       commit_hash=$(echo "$CONTEXT" | jq -r '.commitHash // "unknown"')
       files_changed=$(echo "$CONTEXT" | jq -c '.filesChanged // []')
       linked_reqs=$(echo "$CONTEXT" | jq -c '.linkedRequirements // []')
+      duration_ms=$(echo "$CONTEXT" | jq -r '.metrics.durationMs // 0')
 
       local entry
       entry=$(jq -n \
@@ -123,6 +120,30 @@ handle_fallback() {
       )
 
       store_knowledge_fallback "patterns.jsonl" "$entry"
+
+      # Update progress.txt
+      local progress_file="$SAGA_DIR/progress.txt"
+      local date_str
+      local duration_min
+      local files_str
+      local reqs_str
+
+      date_str=$(date +%Y-%m-%d)
+      duration_min=$((duration_ms / 60000))
+      files_str=$(echo "$files_changed" | jq -r 'join(", ")')
+      reqs_str=$(echo "$linked_reqs" | jq -r 'join(", ")')
+
+      cat >> "$progress_file" << PROGRESS_EOF
+
+## $date_str - $story_id: $title
+- **Commit:** $commit_hash
+- **Files:** $files_str
+- **Duration:** ${duration_min} min
+- **Requirements:** $reqs_str
+---
+PROGRESS_EOF
+      log_hook "PROGRESS" "Updated progress.txt"
+
       echo "Hook: on-task-completed | Story: $story_id | Commit: $commit_hash"
       ;;
 
