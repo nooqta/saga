@@ -6,7 +6,7 @@
 
 ## Who's Behind This
 
-I'm [Anis](https://github.com/nooqta), an indie hacker still at $0 MRR, trying to ship faster and stop losing track of what I'm building. I kept starting projects, getting lost in the code, and forgetting which feature was supposed to do what.
+As an indie hacker, I kept starting projects, getting lost in the code, and forgetting which feature was supposed to do what. Needed a way to ship faster without losing track.
 
 Found [Geoffrey Huntley's Ralph Wiggum loop](https://ghuntley.com/ralph/) and [Ryan Carson's workflow](https://github.com/snarktank/ralph). Game changer. But I wanted something I could just run inside Claude Code without copying bash scripts around.
 
