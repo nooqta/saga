@@ -37,11 +37,34 @@ Implement the specified story completely, following ALL acceptance criteria exac
 ### 1. Setup
 ```
 - Read .saga/plan.json to get story details
+- Read .saga/pin.md if it exists (codebase index for context)
 - Read .saga/progress.txt for existing patterns (especially Codebase Patterns section)
 - Read .saga/srs.md to understand requirement context
 - Ensure you're on the correct branch
 - Review any relevant AGENTS.md files
 ```
+
+**Using the Unified Context (Pin + Knowledge):**
+
+SAGA provides two sources of context that work together:
+
+1. **Pin** (`.saga/pin.md`) - Static codebase snapshot:
+   - Directory structure and file purposes
+   - Existing utilities/components to reuse
+   - Established patterns and conventions
+   - API endpoints and types
+   - "Learned Patterns" section (if pin was regenerated with knowledge)
+
+2. **Knowledge** (from `on-task-start` hook) - Dynamic learnings:
+   - Similar past work and successful patterns
+   - Known issues and how to avoid them
+   - Synthesized guidance for this story type
+
+**How to Use:**
+- Check pin first for structure and conventions
+- Review any `additionalContext` provided by PM (from knowledge query)
+- Look for "Learned Patterns" section in pin for past successes/failures
+- If implementing something similar to past work, follow the documented patterns
 
 ### 2. Implement
 ```

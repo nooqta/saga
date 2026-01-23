@@ -31,6 +31,15 @@ After generating, you can validate the output:
 2. Read project context from `.saga/project.json`
 3. Read requirements from `.saga/srs.md`
 
+4. **Load Codebase Pin (if available)**:
+   - Check if `.saga/pin.md` exists
+   - If yes: Read and use it to:
+     - Identify target files for each story
+     - Reference existing patterns in story context
+     - Suggest appropriate file locations for new code
+     - Set realistic story scope based on codebase complexity
+   - The pin helps create stories that align with existing architecture
+
 ## Generation Process
 
 ### 1. Analyze SRS

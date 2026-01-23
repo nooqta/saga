@@ -82,9 +82,45 @@ Default settings:
   "evaluatorEnabled": true,
   "allowReorder": true,
   "evaluateEveryNIterations": 3,
-  "maxRetries": 3
+  "maxRetries": 3,
+  "pinRegenerationInterval": 5,
+  "autoPinRegeneration": true
 }
 ```
+
+### 1b. Load Codebase Context (Pin + Knowledge)
+
+**IMPORTANT**: SAGA uses a unified context system combining static and dynamic knowledge:
+
+1. **Load Pin** (if `.saga/pin.md` exists):
+   - Directory structure and file purposes
+   - Existing patterns and conventions
+   - API endpoints and component hierarchy
+   - Dependencies and build commands
+   - Learned patterns from previous executions (if integrated)
+
+2. **Query Knowledge** (via on-task-start hook):
+   - Hook queries `.saga/knowledge/patterns.jsonl` for relevant patterns
+   - Hook queries `.saga/knowledge/blockers.jsonl` for known issues
+   - Returns `additionalContext` with synthesized learnings
+
+3. **Combine into Agent Context**:
+   ```
+   Agent Context = Pin (static structure) + Knowledge Query (dynamic learnings) + Story Details
+   ```
+
+**The Unified Context Flow:**
+```
+[Pin Generated] → [Execution Starts] → [Knowledge Accumulated] → [Pin Regenerated with Knowledge]
+      ↑                                        ↓
+      └────────────── Feedback Loop ───────────┘
+```
+
+**IMPORTANT**: Include both pin sections AND knowledge query results in agent prompts to ensure they:
+- Follow existing patterns (from pin)
+- Avoid known issues (from blockers)
+- Reuse successful approaches (from patterns)
+- Use correct file locations (from pin)
 
 ### 2. Find Next Story
 
@@ -169,9 +205,23 @@ Task tool parameters:
     - Iteration: [ITERATION_NUMBER]
     - Start timestamp: [START_TIMESTAMP]
 
+    ### Codebase Context
+
+    **From Pin (.saga/pin.md):**
+    - Directory structure: [RELEVANT_DIRECTORIES]
+    - Relevant patterns: [PATTERNS_FOR_STORY_TYPE]
+    - Existing utilities: [UTILITIES_TO_REUSE]
+    - Conventions: [NAMING_AND_STYLE_CONVENTIONS]
+
+    **From Knowledge Base (via on-task-start hook):**
+    - Similar past work: [PATTERN_MATCHES]
+    - Known issues to avoid: [RELEVANT_BLOCKERS]
+    - Recommended approach: [SYNTHESIZED_GUIDANCE]
+
     ### Technical Hints
     - Target files: [TARGET_FILES]
-    - Related patterns: [FROM_KNOWLEDGE_BASE]
+    - Related patterns: [FROM_PIN_LEARNED_PATTERNS]
+    - Past blockers in this area: [FROM_KNOWLEDGE_BLOCKERS]
 
     ### Expected Deliverables
     Report back with JSON:
@@ -305,6 +355,49 @@ const gitlabSpend = hours > 0 ? `${hours}h${minutes}m` : `${minutes}m`;
      This stores blocker info in `.saga/knowledge/blockers.jsonl`.
    - **PM Integration**: Invoke pm-workflow skill for blocked status
 4. Story will be retried on next iteration (unless blocked)
+
+### 7b. AUTO-REGENERATE Pin (Conditional)
+
+**CHECK**: Regenerate the codebase pin when ALL conditions are met:
+- `autoPinRegeneration` is true (default: true)
+- `iteration % pinRegenerationInterval == 0` (default: every 5th iteration)
+- At least one story completed since last regeneration
+
+**Example**: If `pinRegenerationInterval: 5`:
+- Iteration 1-4: NO regeneration
+- Iteration 5: YES - regenerate pin with accumulated knowledge
+- Iteration 6-9: NO regeneration
+- Iteration 10: YES - regenerate pin
+
+**When triggered:**
+
+1. Read accumulated knowledge:
+   ```bash
+   # Count new patterns since last pin generation
+   PATTERNS_COUNT=$(wc -l < .saga/knowledge/patterns.jsonl 2>/dev/null || echo 0)
+   BLOCKERS_COUNT=$(wc -l < .saga/knowledge/blockers.jsonl 2>/dev/null || echo 0)
+   ```
+
+2. Regenerate pin with knowledge integration:
+   ```
+   Invoke Skill: saga:generate-pin
+   ```
+
+3. Log regeneration:
+   ```
+   [Pin Regenerated] Iteration [N]
+   - Patterns integrated: [PATTERNS_COUNT]
+   - Blockers documented: [BLOCKERS_COUNT]
+   ```
+
+**Why Auto-Regenerate:**
+- Keeps pin fresh with latest learnings
+- Future stories benefit from consolidated knowledge
+- Reduces context fragmentation between pin and knowledge files
+- Agents get unified, up-to-date context
+
+**Manual Override:**
+User can always run `/saga generate-pin` to force regeneration at any time.
 
 ### 8. SPAWN evaluator Agent (Conditional)
 
@@ -481,6 +574,7 @@ Based on `--mode` argument:
 8. **COORDINATE HANDOFFS** - Pass context between agents (e.g., Backend → Frontend → QA)
 9. **FIRE HOOKS** - Execute lifecycle hooks at each stage
 10. **UPDATE STATE** - Keep plan.json, progress.txt, trace.md, and PM tool current
+11. **AUTO-REGENERATE PIN** - Regenerate pin every N iterations to consolidate knowledge
 
 ## Verification Checklist
 
@@ -503,6 +597,7 @@ After story-executor returns SUCCESS:
 - [ ] PM tool synced (if configured)
 - [ ] progress.txt updated
 - [ ] trace.md updated
+- [ ] **Pin regenerated (if iteration % pinRegenerationInterval == 0)**
 - [ ] Evaluator spawned (if due)
 
 ## Stop Condition

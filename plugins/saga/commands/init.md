@@ -159,7 +159,9 @@ Based on gathered information, create `.saga/project.json`:
     "evaluatorEnabled": true,
     "allowReorder": true,
     "evaluateEveryNIterations": 3,
-    "maxRetries": 3
+    "maxRetries": 3,
+    "autoPinRegeneration": true,
+    "pinRegenerationInterval": 5
   }
 }
 ```
@@ -247,9 +249,10 @@ Files created:
 
 Next steps:
   1. /saga init-hooks   - Set up lifecycle hooks (recommended)
-  2. /saga spec         - Generate Software Requirements Specification
-  3. /saga plan         - Create Epic/Feature/Story hierarchy
-  4. /saga execute      - Start autonomous execution
+  2. /saga generate-pin - Generate codebase index (recommended for existing codebases)
+  3. /saga spec         - Generate Software Requirements Specification
+  4. /saga plan         - Create Epic/Feature/Story hierarchy
+  5. /saga execute      - Start autonomous execution
 ```
 
 ### 8. Offer to Initialize Hooks
@@ -272,6 +275,31 @@ This creates JavaScript hooks in `.saga/hooks/` that:
 - Query past learnings before each task
 - Store patterns after successful tasks
 - Record blockers for future reference
+
+### 9. Offer to Generate Codebase Pin
+
+**IMPORTANT**: For existing codebases, ask the user if they want to generate a codebase pin:
+
+> "Would you like me to generate a **codebase pin**? This creates a searchable index of your project that helps SAGA:
+> - Understand existing code structure
+> - Follow established patterns
+> - Avoid duplicating functionality
+>
+> Run `/saga generate-pin` now? (recommended for existing projects)"
+
+If user agrees, invoke the Skill tool:
+```
+Skill: saga:generate-pin
+```
+
+This creates `.saga/pin.md` containing:
+- Directory structure map
+- Exported functions, classes, and types
+- API endpoints
+- Component hierarchy
+- Dependencies and conventions
+
+The pin is automatically used by `/saga spec`, `/saga plan`, and `/saga execute` for better context.
 
 ## Default Workflow Presets
 

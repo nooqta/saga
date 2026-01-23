@@ -58,6 +58,32 @@ The hooks implement a knowledge capture system that compounds learnings across t
 | `on-task-blocked` | Error types, root causes, resolutions | Proactive warnings when similar patterns detected |
 | `on-task-start` | Queries knowledge base | Injects relevant learnings into executor context |
 
+### Integration with Codebase Pin
+
+The knowledge system works together with the **codebase pin** (`.saga/pin.md`):
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    UNIFIED CONTEXT                          │
+├─────────────────────────────────────────────────────────────┤
+│  Pin (Static)              │  Knowledge (Dynamic)           │
+│  ─────────────             │  ──────────────────            │
+│  • Directory structure     │  • patterns.jsonl              │
+│  • Exports & APIs          │  • blockers.jsonl              │
+│  • Dependencies            │  • decisions.jsonl             │
+│  • Conventions             │  • Queried at task start       │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+                    Agent receives combined context
+```
+
+**The Feedback Loop:**
+1. Pin provides initial codebase understanding
+2. Execution accumulates knowledge in JSONL files
+3. `on-task-start` queries knowledge for relevant context
+4. Regenerating pin (`/saga generate-pin`) consolidates knowledge back into pin
+5. Future executions benefit from both static and learned context
+
 ## PM Integration
 
 The hooks also handle PM tool integration based on `.saga/project.json` workflow configuration:

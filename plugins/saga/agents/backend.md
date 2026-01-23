@@ -100,6 +100,11 @@ Report back to PM with:
 1. **Understand Requirements**
    - Read acceptance criteria carefully
    - Identify security requirements
+   - **Read `.saga/pin.md` if it exists** for codebase context:
+     - Directory structure and file locations
+     - Existing API patterns and services
+     - Database models and utilities
+     - Established conventions
    - Review existing patterns
 
 2. **Design**

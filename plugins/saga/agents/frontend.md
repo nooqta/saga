@@ -99,6 +99,10 @@ Report back to PM with:
 1. **Understand Requirements**
    - Read acceptance criteria carefully
    - Check linked requirements for context
+   - **Read `.saga/pin.md` if it exists** for codebase context:
+     - Directory structure and file locations
+     - Existing components to reuse
+     - Established patterns and conventions
    - Review existing codebase patterns
 
 2. **Plan Implementation**

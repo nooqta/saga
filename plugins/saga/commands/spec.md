@@ -21,6 +21,16 @@ You are generating a Software Requirements Specification (SRS) document for a SA
 
 2. Read project context from `.saga/project.json`
 
+3. **Load Codebase Pin (if available)**:
+   - Check if `.saga/pin.md` exists
+   - If yes: Read and use it to understand existing codebase capabilities
+   - This helps generate requirements that:
+     - Build on existing patterns
+     - Avoid duplicating functionality
+     - Reference existing components correctly
+   - If no pin exists but this is an existing codebase, suggest:
+     > "I notice there's no codebase pin. For existing projects, running `/saga generate-pin` first helps me understand your codebase better and generate more accurate requirements."
+
 ## Generation Process
 
 ### 1. Gather Requirements

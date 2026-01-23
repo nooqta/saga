@@ -60,6 +60,8 @@
     "evaluatorEnabled": true,
     "allowReorder": true,
     "evaluateEveryNIterations": 3,
-    "maxRetries": 3
+    "maxRetries": 3,
+    "autoPinRegeneration": true,
+    "pinRegenerationInterval": 5
   }
 }
