@@ -1,262 +1,133 @@
-# SAGA - Structured Agile Governance Agent
+# SAGA — A Claude Code Plugin
 
-**"From idea to implementation with full traceability - without the paperwork."**
+*Structured Agile Governance Agent*
 
-A Claude Code plugin that extends [Ralf](https://github.com/anis-marrouchi/ralf)'s autonomous execution loop with enterprise-grade requirements management, traceability, and PM tool integration.
+---
 
-## Part of Claude Plugins Marketplace
+## Who's Behind This
 
-SAGA is designed for the Claude Code plugin marketplace ecosystem - install it directly into your Claude Code environment to enhance your development workflow.
+I'm [Anis](https://github.com/nooqta), an indie hacker still at $0 MRR, trying to ship faster and stop losing track of what I'm building. I kept starting projects, getting lost in the code, and forgetting which feature was supposed to do what.
 
-## What SAGA Inherits from Ralf
+Found [Geoffrey Huntley's Ralph Wiggum loop](https://ghuntley.com/ralph/) and [Ryan Carson's workflow](https://github.com/snarktank/ralph). Game changer. But I wanted something I could just run inside Claude Code without copying bash scripts around.
 
-- Autonomous story execution loop
-- Story-executor, evaluator, and code-reviewer agents
-- Lifecycle hooks (on-task-start, on-task-completed, on-task-blocked)
-- Progress tracking and metrics
-- TDD-driven implementation
+So I made this. It's not a replacement for Ryan's ralph — that works great. This is just how I like to work: everything inside Claude Code, with some extra tracking so I don't lose my mind on bigger projects.
 
-## What SAGA Adds
+---
 
-| Feature | Description |
-|---------|-------------|
-| **SRS Generation** | Generate structured Software Requirements Specifications |
-| **Epic → Feature → Story** | Full hierarchy instead of flat stories |
-| **Traceability Matrix** | Auto-link requirements → features → stories → code |
-| **Gap Detection** | Identify uncovered requirements automatically |
-| **UML Diagrams** | Generate Mermaid class, sequence, and flow diagrams |
-| **Change Requests** | Log CRs with impact analysis |
-| **PM Integration** | Native GitHub/GitLab sync with configurable workflows |
-| **Design Memory** | Optional Stitch AI integration for design knowledge (UI projects) |
+## What's This?
+
+SAGA runs the Ralph loop as a Claude Code plugin. No terminal scripts. No jq. Just `/saga` commands.
+
+I added SRS (structured requirements) instead of PRD because I kept forgetting what my own features were supposed to do. Now everything has an ID and I can actually trace what code does what.
+
+## The Ralph Thing
+
+If you don't know Ralph, here's the gist from [Geoffrey Huntley](https://www.youtube.com/watch?v=4Nna09dG_c0):
+
+```bash
+while :; do cat PROMPT.md | claude ; done
+```
+
+Run AI in a loop. Each iteration is fresh. Memory lives in files — git commits, progress logs. Define what "done" looks like, let it figure out how.
+
+Geoffrey's insight: **"LLMs are amplifiers of operator skill."** When it fails, you don't blame the tool. You add better instructions. Failure is data.
+
+Ryan Carson ships features while sleeping — three Ralph instances, three branches, three features. That's the dream.
+
+## How I Use It
+
+My daily:
+
+1. **Morning** — `/saga init` on a new idea, spend 20 mins on `/saga spec` really thinking through what I want
+2. **Let it run** — `/saga execute` while I do other stuff
+3. **Check gaps** — `/saga trace` to see what's covered, `/saga gaps` to see what's not
+4. **Tune** — When something breaks, I add notes to the spec. That's the "signs" thing Geoffrey talks about.
+
+For my simple projects, PRD would be fine. But I'm building stuff I want to maintain, maybe sell someday. So I use SRS — numbered requirements, traceable stories. When I come back in 2 weeks, I actually know what's going on.
 
 ## Quick Start
 
 ```bash
-# Initialize a new SAGA project
-/saga init
-
-# Generate Software Requirements Specification
-/saga spec
-
-# Create Epic/Feature/Story hierarchy
-/saga plan
-
-# Start autonomous execution
-/saga execute
-
-# Check progress
-/saga status
+/saga init        # setup
+/saga spec        # think through requirements
+/saga plan        # create stories
+/saga execute     # run the loop
 ```
+
+## SAGA vs Ryan's Ralph
+
+Not better. Different use case.
+
+| | ralph | SAGA |
+|--|-------|------|
+| **Setup** | Copy scripts, install jq | `/plugin install` |
+| **Run** | Terminal: `./ralph.sh` | Inside Claude: `/saga execute` |
+| **Format** | PRD | SRS |
+| **Best for** | Quick features | Projects you'll maintain |
+
+Use Ryan's ralph if you like working in terminal. Use SAGA if you want everything inside Claude Code.
+
+## The Workflow
+
+**1. Spec first** — The better your requirements, the better the output. I spend real time here.
+
+**2. Small stories** — Each one fits in a context window. "Build auth" is too big. "Add email validation" is right.
+
+**3. Fast feedback** — Tests matter. Without them, broken code compounds.
+
+**4. Tune with signs** — It will fail. Add instructions. Try again. That's the process.
 
 ## Commands
 
-| Command | Purpose | Output |
-|---------|---------|--------|
-| `/saga init` | Initialize project with PM config | `.saga/project.json` |
-| `/saga spec` | Generate SRS document | `.saga/srs.md` |
-| `/saga plan` | Create Epic/Feature/Story hierarchy | `.saga/plan.json` |
-| `/saga trace` | Show traceability matrix | Terminal + `.saga/trace.md` |
-| `/saga diagram [type]` | Generate UML (class/sequence/flow) | `.saga/diagrams/*.mmd` |
-| `/saga execute` | Run stories autonomously | Loop with PM sync |
-| `/saga status` | Dashboard with coverage/progress | Terminal output |
-| `/saga cr "desc"` | Log change request | `.saga/changes/CR-XXX.md` |
-| `/saga gaps` | Show uncovered requirements | Terminal output |
-| `/saga sync` | Manual PM tool sync | Updates issues/MRs |
-| `/saga cancel` | Stop execution loop | Cleanup |
+| Command | What |
+|---------|------|
+| `/saga init` | Setup |
+| `/saga spec` | Requirements |
+| `/saga plan` | Stories |
+| `/saga execute` | Run loop |
+| `/saga status` | Progress |
+| `/saga trace` | Coverage |
+| `/saga gaps` | What's missing |
 
-## User Journey
-
-```
-/saga init          → "What are we building?" (guided questions)
-     ↓
-/saga spec          → Generates SRS from conversation
-     ↓
-/saga plan          → Creates Epics → Features → Stories hierarchy
-     ↓
-/saga trace         → Shows traceability matrix + gaps
-     ↓
-/saga diagram       → Generates UML (class, sequence, flow)
-     ↓
-/saga execute       → Runs stories (inherits Ralf's loop)
-     ↓
-/saga status        → Progress dashboard
-     ↓
-/saga cr "change"   → Logs change request, shows impact
-```
-
-## PM Tool Integration
-
-SAGA integrates with GitHub and GitLab to automatically:
-- Create issues when stories start
-- Update labels during execution
-- Close issues when stories complete
-- Create PRs/MRs for completed work
-- Add blocked labels and comments when stuck
-
-### Configuration
-
-During `/saga init`, you configure:
-```json
-{
-  "pm": {
-    "platform": "github",
-    "project": "org/repo",
-    "workflow": {
-      "on_story_start": {
-        "create_issue": true,
-        "add_labels": ["in-progress", "saga"]
-      },
-      "on_story_complete": {
-        "close_issue": true,
-        "create_mr": true
-      }
-    }
-  }
-}
-```
-
-## Data Structure
-
-```
-.saga/
-├── project.json        # Project metadata + PM config
-├── srs.md              # Software Requirements Specification
-├── plan.json           # Epics → Features → Stories hierarchy
-├── trace.md            # Traceability matrix (auto-generated)
-├── diagrams/
-│   ├── class.mmd       # Mermaid class diagram
-│   ├── sequence.mmd    # Mermaid sequence diagram
-│   └── flow.mmd        # Mermaid flowchart
-├── changes/
-│   ├── CR-001.md       # Change request 1
-│   └── CR-002.md       # Change request 2
-├── progress.txt        # Execution log
-└── hooks/              # Lifecycle hooks
-    ├── on-task-start.sh
-    ├── on-task-completed.sh
-    └── on-task-blocked.sh
-```
-
-## Hierarchy Model
-
-```
-Epic (E-001)
-  └── Feature (F-001)
-        └── User Story (US-001)
-              └── Acceptance Criteria
-                    └── Links to: FR-XXX (from SRS)
-```
-
-## Traceability Matrix
-
-Auto-generated mapping of requirements to implementation:
-
-```
-| Requirement | Feature | Story | Status | Test |
-|-------------|---------|-------|--------|------|
-| FR-001      | F-001   | US-001| ✅ Done | ✅   |
-| FR-002      | F-001   | US-002| 🔄 WIP | ❌   |
-| FR-003      | F-002   | -     | ⚠️ Gap | -    |
-```
-
-## Comparison with Ralf
-
-| Aspect | Ralf | SAGA |
-|--------|------|------|
-| Starting point | PRD (informal) | SRS (structured) |
-| Hierarchy | Flat stories | Epic → Feature → Story |
-| Traceability | None | FR → Story → Code |
-| Diagrams | None | Mermaid UML |
-| Change mgmt | None | CR workflow |
-| Gap detection | None | Built-in |
-| PM integration | Manual hooks | Built-in GitHub/GitLab sync |
-| Workflow | Hardcoded | Configurable per-project |
-| Design memory | None | Optional (Stitch AI) |
-
-## Installation
+## Install
 
 ```bash
-# Coming soon to Claude Plugins Marketplace
-claude plugin install saga
+/plugin marketplace add nooqta/saga
+/plugin install saga@nooqta-saga
 ```
 
-Or manually clone to your plugins directory:
+Or clone locally:
+
 ```bash
 cd ~/.claude/plugins/marketplaces/local/
 git clone https://github.com/nooqta/saga.git
+/plugin marketplace add ~/.claude/plugins/marketplaces/local
+/plugin install saga@local
 ```
 
 ## Requirements
 
-- Claude Code CLI
-- `jq` for JSON processing (used by scripts)
-- GitHub CLI (`gh`) or GitLab CLI (`glab`) for PM integration (optional)
+Just Claude Code CLI. That's it.
 
-## Optional Integrations
+## PM Sync
 
-### Stitch AI MCP (for UI/Design Projects)
+Optional GitHub/GitLab integration. Creates issues, closes them when done, makes PRs. Set up during `/saga init` if you want it.
 
-> **Note:** Stitch AI is completely optional and does not affect SAGA's core functionality. SAGA works fully without it.
+## Optional: Stitch AI
 
-For web, mobile, or UI-based projects, you can optionally enable **Stitch AI MCP** to give the Designer agent design knowledge management capabilities:
+Building UI? [Stitch AI](https://stitch.withgoogle.com/docs/mcp/setup/) adds design memory. I use it sometimes. Totally optional.
 
-- Store and retrieve design patterns across sessions
-- Share component specifications between projects
-- Maintain design system consistency
-- Query past design decisions
+## Credits
 
-#### Setup (Optional)
-
-1. **Get API access** from [Stitch AI](https://stitch.withgoogle.com/docs/mcp/setup/)
-
-2. **Clone and build the MCP server:**
-   ```bash
-   git clone https://github.com/StitchAI/stitch-ai-mcp.git
-   cd stitch-ai-mcp
-   npm install && npm run build
-   ```
-
-3. **Set environment variables:**
-   ```bash
-   export STITCH_AI_API_KEY="your-api-key"
-   export STITCH_AI_MCP_PATH="/path/to/stitch-ai-mcp"
-   ```
-
-4. **Enable in Claude Code** via `/mcp` command
-
-Once enabled, the Designer agent gains access to `create_space`, `upload_memory`, `get_memory`, and `get_all_memories` tools for design knowledge management.
-
-**Without Stitch AI:** The Designer agent still functions normally, creating design specifications and component guides - it just won't have persistent design memory across sessions.
-
-## Skills
-
-SAGA includes specialized skills for expert guidance:
-
-- **pm-workflow**: GitHub/GitLab integration patterns
-- **srs-generation**: SRS document best practices
-- **diagram-generation**: UML/Mermaid patterns
-- **story-execution**: Implementation guidance
-- **rlm-processing**: Large codebase analysis
-
-## Lifecycle Hooks
-
-Customize SAGA behavior with hooks in `.saga/hooks/`:
-
-- `on-task-start.sh` - Before story execution
-- `on-task-completed.sh` - After story passes
-- `on-task-blocked.sh` - When max retries exceeded
-
-Hooks receive JSON context via stdin and can perform custom actions (notifications, metrics, etc.).
-
-## Contributing
-
-Contributions are welcome! Please see our contributing guidelines.
+- [Ralph Wiggum loop](https://ghuntley.com/ralph/) — Geoffrey Huntley
+- [ralph](https://github.com/snarktank/ralph) — Ryan Carson
+- [Ralf](https://github.com/anis-marrouchi/ralf) — my earlier attempt at this
+- Built by [Nooqta](https://github.com/nooqta)
 
 ## License
 
 MIT
 
-## Credits
+---
 
-- Built on top of [Ralf](https://github.com/anis-marrouchi/ralf) by Anis Marrouchi
-- Developed by [Nooqta](https://github.com/nooqta)
+*Still figuring this out. If you try it and have ideas, [open an issue](https://github.com/nooqta/saga/issues).*
