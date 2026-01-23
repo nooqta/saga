@@ -3,20 +3,14 @@
   "name": "nooqta-saga",
   "description": "SAGA plugin marketplace",
   "owner": {
-    "name": "Nooqta",
-    "email": "contact@nooqta.com"
+    "name": "Anis Marrouchi",
+    "email": "contact@noqta.tn"
   },
   "plugins": [
     {
       "name": "saga",
-      "description": "SAGA - Structured Agile Governance Agent for requirements-driven development with full traceability",
-      "author": {
-        "name": "Nooqta"
-      },
-      "source": {
-        "source": "local",
-        "path": ".."
-      },
+      "description": "SAGA - Ralph loop as a Claude Code plugin. Ship AFK with traceable requirements.",
+      "source": "./plugins/saga",
       "category": "development"
     }
   ]

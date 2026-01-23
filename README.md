@@ -96,14 +96,7 @@ Use Ryan's ralph if you like working in terminal. Use SAGA if you want everythin
 /plugin install saga@nooqta-saga
 ```
 
-Or clone locally:
-
-```bash
-cd ~/.claude/plugins/marketplaces/local/
-git clone https://github.com/nooqta/saga.git
-/plugin marketplace add ~/.claude/plugins/marketplaces/local
-/plugin install saga@local
-```
+That's it.
 
 ## Requirements
 
