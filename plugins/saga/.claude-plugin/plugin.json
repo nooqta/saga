@@ -7,9 +7,26 @@
   },
   "license": "MIT",
   "repository": "https://github.com/nooqta/saga",
-  "commands": "./commands/",
-  "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
-  "agents": "./agents/",
-  "mcpServers": "./mcp-servers.json"
+  "commands": [
+    "./commands/init.md",
+    "./commands/init-hooks.md",
+    "./commands/generate-pin.md",
+    "./commands/spec.md",
+    "./commands/plan.md",
+    "./commands/execute.md",
+    "./commands/status.md",
+    "./commands/cancel.md",
+    "./commands/sync.md",
+    "./commands/trace.md",
+    "./commands/gaps.md",
+    "./commands/diagram.md",
+    "./commands/cr.md"
+  ],
+  "skills": [
+    "./skills/srs-generation",
+    "./skills/story-execution",
+    "./skills/pm-workflow",
+    "./skills/rlm-processing",
+    "./skills/diagram-generation"
+  ]
 }
