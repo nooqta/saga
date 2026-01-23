@@ -1,28 +1,22 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "local",
-  "description": "Local plugins marketplace",
+  "name": "nooqta-saga",
+  "description": "SAGA plugin marketplace",
   "owner": {
-    "name": "Local",
-    "email": "local@localhost"
+    "name": "Nooqta",
+    "email": "contact@nooqta.com"
   },
   "plugins": [
-    {
-      "name": "ralf",
-      "description": "Recursive Language Model Agent for PRD-driven development with iterative loops",
-      "author": {
-        "name": "Anis Marrouchi"
-      },
-      "source": "../../ralf",
-      "category": "development"
-    },
     {
       "name": "saga",
       "description": "SAGA - Structured Agile Governance Agent for requirements-driven development with full traceability",
       "author": {
         "name": "Nooqta"
       },
-      "source": "..",
+      "source": {
+        "source": "local",
+        "path": ".."
+      },
       "category": "development"
     }
   ]
