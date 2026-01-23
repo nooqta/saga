@@ -1,0 +1,12 @@
+{
+  "stitchai": {
+    "command": "node",
+    "args": ["${STITCH_AI_MCP_PATH}/dist/server.js"],
+    "env": {
+      "API_KEY": "${STITCH_AI_API_KEY}",
+      "BASE_URL": "${STITCH_AI_BASE_URL:-https://api-demo.stitch-ai.co}"
+    },
+    "disabled": true,
+    "_comment": "Enable by setting STITCH_AI_API_KEY and STITCH_AI_MCP_PATH environment variables. Get MCP from: https://github.com/StitchAI/stitch-ai-mcp"
+  }
+}

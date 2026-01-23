@@ -1,6 +1,6 @@
 ---
-name: rlm-processing
 description: "Process large codebases using Recursive Language Model patterns. Use when context exceeds 50K tokens or requires deep multi-file analysis."
+capabilities: ["large-codebase-processing", "context-chunking", "semantic-analysis", "pattern-discovery", "cost-optimization"]
 ---
 
 # RLM Processing Skill

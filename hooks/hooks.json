@@ -9,6 +9,48 @@
           }
         ]
       }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "story-executor|ralf:story-executor|saga:story-executor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/on-task-start-hook.js"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "story-executor|ralf:story-executor|saga:story-executor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/on-task-stop-hook.js"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/fire-hook.sh session-start"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/fire-hook.sh session-end"
+          }
+        ]
+      }
     ]
   }
 }

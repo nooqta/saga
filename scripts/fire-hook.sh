@@ -5,6 +5,8 @@
 #
 # Usage: fire-hook.sh <hook-name> <json-context>
 # Example: fire-hook.sh on-task-start '{"storyId":"US-001",...}'
+#
+# Hook configuration is read from hooks.json (saga section)
 
 set -euo pipefail
 
@@ -16,6 +18,11 @@ if [[ -z "$HOOK_NAME" ]]; then
   echo "Usage: fire-hook.sh <hook-name> <json-context>" >&2
   exit 1
 fi
+
+# Determine script directory and plugin root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
+HOOKS_JSON="$PLUGIN_ROOT/hooks/hooks.json"
 
 SAGA_DIR=".saga"
 HOOKS_DIR="$SAGA_DIR/hooks"
@@ -46,15 +53,36 @@ store_knowledge_fallback() {
   log_hook "KNOWLEDGE" "Stored entry in $filename"
 }
 
+# Get hook configuration from hooks.json
+get_hook_config() {
+  if [[ -f "$HOOKS_JSON" ]]; then
+    local js_path
+    local fallback
+
+    js_path=$(jq -r ".saga[\"$HOOK_NAME\"].js // \"\"" "$HOOKS_JSON" 2>/dev/null || echo "")
+    fallback=$(jq -r ".saga[\"$HOOK_NAME\"].fallback // \"bash\"" "$HOOKS_JSON" 2>/dev/null || echo "bash")
+
+    if [[ -n "$js_path" ]]; then
+      log_hook "CONFIG" "Found hook config in hooks.json: js=$js_path, fallback=$fallback"
+      echo "$js_path"
+      return 0
+    fi
+  fi
+
+  # Default: look for hook in standard location
+  echo "$HOOKS_DIR/${HOOK_NAME}.js"
+}
+
 # Try to execute hook
 execute_hook() {
-  local hook_js="$HOOKS_DIR/${HOOK_NAME}.js"
+  # Get configured hook path from hooks.json
+  local hook_js
+  hook_js=$(get_hook_config)
   local hook_sh="$HOOKS_DIR/${HOOK_NAME}.sh"
 
   # Try JS hook first (hooks use native Node.js modules only, no npm install needed)
   if [[ -f "$hook_js" && -x "$hook_js" ]]; then
     log_hook "EXECUTING" "JS hook $hook_js"
-
     if echo "$CONTEXT" | "$hook_js" 2>>"$HOOK_LOG"; then
       log_hook "SUCCESS" "JS hook completed"
       return 0

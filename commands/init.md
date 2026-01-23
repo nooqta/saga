@@ -7,11 +7,28 @@ argument-hint: "[project-name]"
 
 You are initializing a new SAGA project. Guide the user through setup with a conversational approach.
 
+## IMPORTANT: Working Directory
+
+**Always use paths relative to the user's current working directory, NOT the plugin directory.**
+
+The user's project is at `$CWD` (the directory where they ran the command). All `.saga/` paths should be created there:
+- `$CWD/.saga/project.json` (NOT in the plugin folder)
+
+## Automated Option
+
+For quick setup with defaults, you can use the shell script:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/init-project.sh" "ProjectName" --pm none --description "Description"
+```
+
+For interactive setup, follow the manual flow below.
+
 ## Setup Flow
 
 ### 1. Create Directory Structure
 
-First, create the `.saga/` directory structure:
+First, create the `.saga/` directory structure in the **user's project directory**:
 
 ```bash
 mkdir -p .saga/diagrams .saga/changes .saga/hooks .saga/knowledge
@@ -24,6 +41,45 @@ Ask the user conversationally:
 **Project Basics:**
 - "What's the name of your project?"
 - "Can you give me a brief description? (1-2 sentences)"
+
+**Project Type:**
+- "What type of project is this?"
+  - Web application (frontend/full-stack)
+  - Mobile application (React Native, Flutter, native)
+  - API/Backend service
+  - CLI/Library
+  - Other
+
+### 2.1 UI-Based Project Setup
+
+If the project is **web**, **mobile**, or **UI-based**, recommend Stitch AI MCP:
+
+> "I see this is a UI-based project. Would you like to enable **Stitch AI MCP** for design knowledge management?
+>
+> This allows the Designer agent to:
+> - Store and retrieve design patterns across sessions
+> - Share component specifications between projects
+> - Maintain design system consistency
+>
+> Requires: `STITCH_AI_API_KEY` environment variable"
+
+If enabled, add to `project.json`:
+```json
+{
+  "projectType": "web" | "mobile" | "ui",
+  "integrations": {
+    "stitchAi": {
+      "enabled": true,
+      "spaces": ["design-system", "components", "accessibility", "user-flows"]
+    }
+  }
+}
+```
+
+To enable Stitch AI MCP:
+1. Get API key from https://stitch-ai.co
+2. Set `STITCH_AI_API_KEY` in environment
+3. Enable the MCP in Claude Code settings or via `/mcp`
 
 ### 3. PM Tool Configuration
 
@@ -64,6 +120,7 @@ Based on gathered information, create `.saga/project.json`:
   "name": "Project Name",
   "description": "Project description",
   "createdAt": "2024-01-15T10:00:00Z",
+  "projectType": "web" | "mobile" | "api" | "cli" | "other",
   "pm": {
     "platform": "github" | "gitlab" | "none",
     "url": "https://github.com",
@@ -87,6 +144,12 @@ Based on gathered information, create `.saga/project.json`:
         "create_issue": true,
         "add_labels": ["change-request"]
       }
+    }
+  },
+  "integrations": {
+    "stitchAi": {
+      "enabled": false,
+      "spaces": ["design-system", "components", "accessibility", "user-flows"]
     }
   },
   "settings": {

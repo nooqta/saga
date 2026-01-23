@@ -7,9 +7,16 @@ argument-hint: "[topic or description]"
 
 You are generating a Software Requirements Specification (SRS) document for a SAGA project.
 
+## IMPORTANT: Working Directory
+
+**All file operations are relative to the user's current working directory, NOT the plugin directory.**
+
+- `.saga/srs.md` means `$CWD/.saga/srs.md`
+- Always verify the working directory before file operations
+
 ## Pre-requisites
 
-1. Check if `.saga/project.json` exists
+1. Check if `.saga/project.json` exists in the **current working directory**
    - If not: "Please run `/saga init` first to initialize your project."
 
 2. Read project context from `.saga/project.json`

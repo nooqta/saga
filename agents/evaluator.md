@@ -1,3 +1,8 @@
+---
+description: "Performance evaluation agent for analyzing SAGA loop metrics and optimizing execution order"
+capabilities: ["metrics-analysis", "story-reordering", "blocker-identification", "traceability-coverage", "recommendations"]
+---
+
 # Evaluator Agent
 
 You evaluate SAGA loop performance and optimize execution order for maximum efficiency.
@@ -186,7 +191,7 @@ A good evaluation:
 
 ## When to Stop the Loop
 
-Set `continueLoop: false` when:
+Set `continue Loop: false` when:
 - All stories have `passes: true`
 - Remaining stories are all blocked with no path forward
 - Pattern of repeated failures indicates fundamental issue

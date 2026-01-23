@@ -1,6 +1,6 @@
 ---
-name: story-execution
 description: "Execute a single user story from plan.json. Use during SAGA loop iterations to implement stories correctly."
+capabilities: ["story-implementation", "acceptance-verification", "commit-management", "quality-gates", "error-recovery"]
 ---
 
 # Story Execution Skill

@@ -27,6 +27,7 @@ SAGA is designed for the Claude Code plugin marketplace ecosystem - install it d
 | **UML Diagrams** | Generate Mermaid class, sequence, and flow diagrams |
 | **Change Requests** | Log CRs with impact analysis |
 | **PM Integration** | Native GitHub/GitLab sync with configurable workflows |
+| **Design Memory** | Optional Stitch AI integration for design knowledge (UI projects) |
 
 ## Quick Start
 
@@ -170,6 +171,7 @@ Auto-generated mapping of requirements to implementation:
 | Gap detection | None | Built-in |
 | PM integration | Manual hooks | Built-in GitHub/GitLab sync |
 | Workflow | Hardcoded | Configurable per-project |
+| Design memory | None | Optional (Stitch AI) |
 
 ## Installation
 
@@ -189,6 +191,42 @@ git clone https://github.com/nooqta/saga.git
 - Claude Code CLI
 - `jq` for JSON processing (used by scripts)
 - GitHub CLI (`gh`) or GitLab CLI (`glab`) for PM integration (optional)
+
+## Optional Integrations
+
+### Stitch AI MCP (for UI/Design Projects)
+
+> **Note:** Stitch AI is completely optional and does not affect SAGA's core functionality. SAGA works fully without it.
+
+For web, mobile, or UI-based projects, you can optionally enable **Stitch AI MCP** to give the Designer agent design knowledge management capabilities:
+
+- Store and retrieve design patterns across sessions
+- Share component specifications between projects
+- Maintain design system consistency
+- Query past design decisions
+
+#### Setup (Optional)
+
+1. **Get API access** from [Stitch AI](https://stitch.withgoogle.com/docs/mcp/setup/)
+
+2. **Clone and build the MCP server:**
+   ```bash
+   git clone https://github.com/StitchAI/stitch-ai-mcp.git
+   cd stitch-ai-mcp
+   npm install && npm run build
+   ```
+
+3. **Set environment variables:**
+   ```bash
+   export STITCH_AI_API_KEY="your-api-key"
+   export STITCH_AI_MCP_PATH="/path/to/stitch-ai-mcp"
+   ```
+
+4. **Enable in Claude Code** via `/mcp` command
+
+Once enabled, the Designer agent gains access to `create_space`, `upload_memory`, `get_memory`, and `get_all_memories` tools for design knowledge management.
+
+**Without Stitch AI:** The Designer agent still functions normally, creating design specifications and component guides - it just won't have persistent design memory across sessions.
 
 ## Skills
 

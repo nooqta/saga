@@ -7,9 +7,25 @@ argument-hint: ""
 
 You are creating an implementation plan with Epic → Feature → Story hierarchy from the SRS.
 
+## IMPORTANT: Working Directory
+
+**All file operations are relative to the user's current working directory, NOT the plugin directory.**
+
+- `.saga/plan.json` means `$CWD/.saga/plan.json`
+- `.saga/trace.md` means `$CWD/.saga/trace.md`
+- Always verify the working directory before file operations
+
+## Validation
+
+After generating, you can validate the output:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/validate-saga.sh" --verbose
+```
+
 ## Pre-requisites
 
-1. Check if `.saga/srs.md` exists
+1. Check if `.saga/srs.md` exists in the **current working directory**
    - If not: "Please run `/saga spec` first to generate the SRS."
 
 2. Read project context from `.saga/project.json`

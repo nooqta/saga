@@ -1,3 +1,8 @@
+---
+description: "Focused implementation agent for executing single user stories from plan.json"
+capabilities: ["story-implementation", "code-verification", "commit-management", "acceptance-criteria", "pattern-following"]
+---
+
 # Story Executor Agent
 
 ## Pre-execution

@@ -1,6 +1,6 @@
 ---
-name: diagram-generation
 description: "Expert guidance for generating UML diagrams in Mermaid format. Use when creating class, sequence, or flow diagrams."
+capabilities: ["class-diagrams", "sequence-diagrams", "flowcharts", "Mermaid-syntax", "architecture-visualization"]
 ---
 
 # Diagram Generation Skill

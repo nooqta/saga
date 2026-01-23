@@ -5,7 +5,35 @@ argument-hint: "[--force]"
 
 # Initialize SAGA Hooks
 
-Create the `.saga/hooks/` directory with JavaScript hook scripts that use the Claude Agent SDK for intelligent lifecycle event handling, **compounding knowledge**, and **PM tool integration**.
+Create the `.saga/hooks/` directory with JavaScript hook scripts for intelligent lifecycle event handling, **compounding knowledge**, and **PM tool integration**.
+
+## IMPORTANT: Working Directory
+
+**All file operations are relative to the user's current working directory, NOT the plugin directory.**
+
+- `.saga/hooks/` means `$CWD/.saga/hooks/`
+- Always verify the working directory before file operations
+
+## Automated Option (Recommended)
+
+For reliable hook creation, use the shell script:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/init-hooks.sh"
+```
+
+Or with `--force` to overwrite existing hooks:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/init-hooks.sh" --force
+```
+
+This script creates simplified JavaScript hooks that:
+- Work without the Claude Agent SDK (no npm install required)
+- Store knowledge in JSONL files
+- Support PM integration through bash fallbacks
+
+For the full manual process with Claude Agent SDK support, follow the instructions below.
 
 ## The Job
 

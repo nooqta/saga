@@ -1,6 +1,6 @@
 ---
-name: srs-generation
 description: "Expert guidance for generating Software Requirements Specifications. Use when creating SRS documents."
+capabilities: ["requirements-writing", "IEEE-830-standard", "acceptance-criteria", "traceability", "prioritization"]
 ---
 
 # SRS Generation Skill

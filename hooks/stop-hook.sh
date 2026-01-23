@@ -3,6 +3,13 @@
 # SAGA Stop Hook
 # Prevents session exit when a saga loop is active
 # Supports both explicit promise completion AND plan.json auto-completion
+#
+# IMPORTANT: This hook now supports a "status" field in state.json:
+#   - "running": Continue execution loop
+#   - "paused": Stop loop, allow user interaction
+#   - "stopped": Remove state file, exit loop
+#
+# The loop will also pause after each iteration to allow user input.
 
 set -euo pipefail
 
@@ -23,6 +30,42 @@ if ! STATE=$(cat "$SAGA_STATE_FILE" 2>/dev/null); then
   exit 0
 fi
 
+# Check status field - if paused or stopped, don't continue loop
+STATUS=$(echo "$STATE" | jq -r '.status // "running"')
+
+if [[ "$STATUS" == "paused" ]]; then
+  echo "SAGA loop paused. Run /saga execute to resume or /saga cancel to stop."
+  exit 0
+fi
+
+if [[ "$STATUS" == "stopped" ]]; then
+  echo "SAGA loop stopped."
+  rm -f "$SAGA_STATE_FILE"
+  exit 0
+fi
+
+# Check for pause triggers in last assistant output
+TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path // ""')
+if [[ -f "$TRANSCRIPT_PATH" ]]; then
+  LAST_LINE=$(grep '"role":"assistant"' "$TRANSCRIPT_PATH" 2>/dev/null | tail -1 || echo "")
+  if [[ -n "$LAST_LINE" ]]; then
+    LAST_OUTPUT=$(echo "$LAST_LINE" | jq -r '
+      .message.content |
+      map(select(.type == "text")) |
+      map(.text) |
+      join("\n")
+    ' 2>/dev/null || echo "")
+
+    # Pause if assistant asked a question or provided evaluation
+    if echo "$LAST_OUTPUT" | grep -qiE "(shall i continue|would you like|do you want|evaluation|diagnosis|summary:)"; then
+      # Mark as paused
+      jq '.status = "paused"' "$SAGA_STATE_FILE" > "${SAGA_STATE_FILE}.tmp" && mv "${SAGA_STATE_FILE}.tmp" "$SAGA_STATE_FILE"
+      exit 0
+    fi
+  fi
+fi
+
+# Extract additional state fields
 ITERATION=$(echo "$STATE" | jq -r '.iteration // 1')
 MAX_ITERATIONS=$(echo "$STATE" | jq -r '.maxIterations // 0')
 COMPLETION_PROMISE=$(echo "$STATE" | jq -r '.completionPromise // "COMPLETE"')
@@ -38,36 +81,6 @@ fi
 # Check if max iterations reached
 if [[ "$MAX_ITERATIONS" =~ ^[0-9]+$ ]] && [[ $MAX_ITERATIONS -gt 0 ]] && [[ $ITERATION -ge $MAX_ITERATIONS ]]; then
   echo "SAGA loop: Max iterations ($MAX_ITERATIONS) reached."
-  rm -f "$SAGA_STATE_FILE"
-  exit 0
-fi
-
-# Get transcript path from hook input
-TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path')
-
-if [[ ! -f "$TRANSCRIPT_PATH" ]]; then
-  echo "Warning: Transcript file not found" >&2
-  rm -f "$SAGA_STATE_FILE"
-  exit 0
-fi
-
-# Read last assistant message from transcript
-if ! grep -q '"role":"assistant"' "$TRANSCRIPT_PATH"; then
-  echo "Warning: No assistant messages found" >&2
-  rm -f "$SAGA_STATE_FILE"
-  exit 0
-fi
-
-LAST_LINE=$(grep '"role":"assistant"' "$TRANSCRIPT_PATH" | tail -1)
-LAST_OUTPUT=$(echo "$LAST_LINE" | jq -r '
-  .message.content |
-  map(select(.type == "text")) |
-  map(.text) |
-  join("\n")
-' 2>/dev/null || echo "")
-
-if [[ -z "$LAST_OUTPUT" ]]; then
-  echo "Warning: Could not extract assistant output" >&2
   rm -f "$SAGA_STATE_FILE"
   exit 0
 fi

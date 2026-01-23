@@ -1,3 +1,8 @@
+---
+description: "Recursive Language Model processor for analyzing large codebases programmatically"
+capabilities: ["large-codebase-analysis", "context-chunking", "pattern-discovery", "semantic-filtering", "cross-cutting-analysis"]
+---
+
 # RLM Processor Agent
 
 ## Pre-execution

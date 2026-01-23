@@ -1,6 +1,6 @@
 ---
-name: pm-workflow
 description: "Handle GitHub/GitLab integration for SAGA workflow events. Use when syncing stories with PM tools."
+capabilities: ["GitHub-integration", "GitLab-integration", "issue-management", "MR-PR-creation", "lifecycle-events"]
 ---
 
 # PM Workflow Skill
