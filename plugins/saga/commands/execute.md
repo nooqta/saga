@@ -141,10 +141,17 @@ iteration = current iteration number
 **MANDATORY**: Fire the on-task-start hook using the fire-hook.sh script:
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/fire-hook.sh" on-task-start '{"storyId":"[STORY_ID]","title":"[STORY_TITLE]","branch":"[BRANCH_NAME]","iteration":[ITERATION],"linkedRequirements":[REQUIREMENTS_ARRAY],"acceptanceCriteria":[CRITERIA_ARRAY]}'
+"${CLAUDE_PLUGIN_ROOT}/scripts/fire-hook.sh" on-task-start '{"storyId":"US-001","title":"Add user login","branch":"feature/US-001-login","iteration":1,"linkedRequirements":["FR-001","FR-002"],"acceptanceCriteria":["User can log in","Error shown on failure"]}'
 ```
 
-Replace placeholders with actual values from the story. This hook:
+**IMPORTANT**: Replace placeholders with actual values from the story:
+- `storyId` → story ID string (e.g., `"US-001"`)
+- `title` → story title string
+- `iteration` → iteration number WITHOUT quotes (e.g., `1` not `"1"`)
+- `linkedRequirements` → JSON array of strings (e.g., `["FR-001"]` or `[]` if none)
+- `acceptanceCriteria` → JSON array of strings (e.g., `["criterion1"]` or `[]`)
+
+This hook:
 - Logs hook execution to `/tmp/saga-hooks.log`
 - Queries compounding knowledge (if JS hooks installed)
 - Falls back to bash-based logging if JS unavailable
@@ -296,8 +303,13 @@ const gitlabSpend = hours > 0 ? `${hours}h${minutes}m` : `${minutes}m`;
    ```
 3. **MANDATORY**: FIRE `on_task_completed` hook using fire-hook.sh:
    ```!
-   "${CLAUDE_PLUGIN_ROOT}/scripts/fire-hook.sh" on-task-completed '{"storyId":"[STORY_ID]","title":"[STORY_TITLE]","commitHash":"[COMMIT_HASH]","filesChanged":[FILES_ARRAY],"linkedRequirements":[REQUIREMENTS_ARRAY],"metrics":{"durationMs":[DURATION],"iteration":[ITERATION]}}'
+   "${CLAUDE_PLUGIN_ROOT}/scripts/fire-hook.sh" on-task-completed '{"storyId":"US-001","title":"Add user login","commitHash":"abc123def","filesChanged":["src/auth/login.ts","src/auth/login.test.ts"],"linkedRequirements":["FR-001","FR-002"],"metrics":{"durationMs":45000,"iteration":1}}'
    ```
+   **IMPORTANT**: Replace with actual values:
+   - `storyId`, `title`, `commitHash` → strings
+   - `filesChanged`, `linkedRequirements` → JSON arrays (use `[]` if empty)
+   - `durationMs`, `iteration` → numbers WITHOUT quotes
+
    This stores learnings in `.saga/knowledge/patterns.jsonl`.
 
 4. **PM Integration**: Sync with GitLab/GitHub using MCP tools:
@@ -350,8 +362,13 @@ const gitlabSpend = hours > 0 ? `${hours}h${minutes}m` : `${minutes}m`;
    - Set `blockedReason` on story
    - **MANDATORY**: FIRE `on_task_blocked` hook:
      ```!
-     "${CLAUDE_PLUGIN_ROOT}/scripts/fire-hook.sh" on-task-blocked '{"storyId":"[STORY_ID]","title":"[STORY_TITLE]","blockedReason":"[REASON]","retryCount":[COUNT],"errors":[ERRORS_ARRAY],"linkedRequirements":[REQUIREMENTS_ARRAY]}'
+     "${CLAUDE_PLUGIN_ROOT}/scripts/fire-hook.sh" on-task-blocked '{"storyId":"US-001","title":"Add user login","blockedReason":"Test failures after 3 retries","retryCount":3,"errors":["TypeError in auth.ts","Jest snapshot mismatch"],"linkedRequirements":["FR-001"]}'
      ```
+     **IMPORTANT**: Replace with actual values:
+     - `storyId`, `title`, `blockedReason` → strings
+     - `retryCount` → number WITHOUT quotes (e.g., `3` not `"3"`)
+     - `errors`, `linkedRequirements` → JSON arrays (use `[]` if empty)
+
      This stores blocker info in `.saga/knowledge/blockers.jsonl`.
    - **PM Integration**: Invoke pm-workflow skill for blocked status
 4. Story will be retried on next iteration (unless blocked)

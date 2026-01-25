@@ -10,6 +10,9 @@ PLAN_PATH=".saga/plan.json"
 MAX_ITERATIONS=0
 COMPLETION_PROMISE="COMPLETE"
 EXECUTION_MODE="sequential"
+RESUME_MODE=false
+FORCE_RESTART=false
+STALE_TIMEOUT_MINUTES=5
 
 # Help message
 show_help() {
@@ -26,6 +29,8 @@ OPTIONS:
   --max-iterations <n>           Maximum iterations before auto-stop (default: unlimited)
   --mode <mode>                  Execution mode: sequential|parallel|full-parallel (default: sequential)
   --completion-promise '<text>'  Custom completion phrase (default: COMPLETE)
+  --resume                       Resume an existing/stale session (auto-detected)
+  --force                        Force restart, discarding any existing session state
   -h, --help                     Show this help message
 
 DESCRIPTION:
@@ -107,6 +112,14 @@ while [[ $# -gt 0 ]]; do
       COMPLETION_PROMISE="$2"
       shift 2
       ;;
+    --resume)
+      RESUME_MODE=true
+      shift
+      ;;
+    --force)
+      FORCE_RESTART=true
+      shift
+      ;;
     -*)
       echo "Error: Unknown option: $1" >&2
       echo "Run '/saga execute --help' for usage" >&2
@@ -148,10 +161,68 @@ if ! jq empty "$PLAN_PATH" 2>/dev/null; then
 fi
 
 # Check for existing loop
+EXISTING_STATE=false
+STALE_SESSION=false
+PREVIOUS_ITERATION=0
+
 if [[ -f ".saga/state.json" ]]; then
-  echo "Warning: SAGA loop already active!" >&2
-  echo "Run /saga cancel first to stop the existing loop" >&2
-  exit 1
+  EXISTING_STATE=true
+
+  # Get previous iteration count
+  PREVIOUS_ITERATION=$(jq -r '.iteration // 1' ".saga/state.json" 2>/dev/null || echo "1")
+
+  # Check if session is stale (no activity for STALE_TIMEOUT_MINUTES)
+  if [[ "$(uname)" == "Darwin" ]]; then
+    # macOS: use stat -f %m for modification time
+    STATE_MTIME=$(stat -f %m ".saga/state.json" 2>/dev/null || echo "0")
+  else
+    # Linux: use stat -c %Y
+    STATE_MTIME=$(stat -c %Y ".saga/state.json" 2>/dev/null || echo "0")
+  fi
+  CURRENT_TIME=$(date +%s)
+  AGE_SECONDS=$((CURRENT_TIME - STATE_MTIME))
+  AGE_MINUTES=$((AGE_SECONDS / 60))
+
+  if [[ $AGE_MINUTES -ge $STALE_TIMEOUT_MINUTES ]]; then
+    STALE_SESSION=true
+  fi
+fi
+
+# Handle existing state
+if [[ "$EXISTING_STATE" == "true" ]]; then
+  if [[ "$FORCE_RESTART" == "true" ]]; then
+    echo "Force restart: removing existing state..."
+    rm -f ".saga/state.json"
+    EXISTING_STATE=false
+  elif [[ "$STALE_SESSION" == "true" ]] || [[ "$RESUME_MODE" == "true" ]]; then
+    echo ""
+    echo "═══════════════════════════════════════════════════════════════════"
+    echo "  RESUMING SAGA Execution"
+    echo "═══════════════════════════════════════════════════════════════════"
+    echo ""
+    if [[ "$STALE_SESSION" == "true" ]]; then
+      echo "Detected stale session (inactive for ${AGE_MINUTES} minutes)"
+    fi
+    echo "Resuming from iteration: $PREVIOUS_ITERATION"
+    echo ""
+    # Don't exit - continue with existing state, just update heartbeat
+  else
+    echo "" >&2
+    echo "═══════════════════════════════════════════════════════════════════" >&2
+    echo "  SAGA Session Already Active" >&2
+    echo "═══════════════════════════════════════════════════════════════════" >&2
+    echo "" >&2
+    echo "  Current iteration: $PREVIOUS_ITERATION" >&2
+    echo "  Session age: ${AGE_MINUTES} minutes" >&2
+    echo "" >&2
+    echo "  Options:" >&2
+    echo "    /saga:execute --resume    Resume the existing session" >&2
+    echo "    /saga:execute --force     Discard state and restart fresh" >&2
+    echo "    /saga:cancel              Cancel and clean up" >&2
+    echo "" >&2
+    echo "═══════════════════════════════════════════════════════════════════" >&2
+    exit 1
+  fi
 fi
 
 # Read plan metadata
@@ -196,8 +267,17 @@ fi
 # Build the prompt for the loop
 PROMPT="You are SAGA, an autonomous coding agent orchestrator with traceability. Execute the next incomplete story from $PLAN_PATH by SPAWNING the story-executor agent. Follow the SAGA workflow: read plan, check branch, spawn agent, track metrics, update status, fire hooks, sync PM tool. Work on ONE story per iteration."
 
-# Create state file (JSON format)
-cat > .saga/state.json << EOF
+# Create or update state file (JSON format)
+if [[ "$EXISTING_STATE" == "true" ]] && [[ "$STALE_SESSION" == "true" || "$RESUME_MODE" == "true" ]]; then
+  # Resume: update heartbeat and keep iteration
+  RESUME_ITERATION=$((PREVIOUS_ITERATION))
+  jq --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+     --argjson iter "$RESUME_ITERATION" \
+     '. + {lastHeartbeat: $ts, iteration: $iter, active: true}' \
+     ".saga/state.json" > ".saga/state.json.tmp" && mv ".saga/state.json.tmp" ".saga/state.json"
+else
+  # Fresh start: create new state file
+  cat > .saga/state.json << EOF
 {
   "active": true,
   "iteration": 1,
@@ -209,9 +289,11 @@ cat > .saga/state.json << EOF
   "branch": "$BRANCH",
   "pmPlatform": "$PM_PLATFORM",
   "startedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "lastHeartbeat": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "prompt": $(echo "$PROMPT" | jq -Rs .)
 }
 EOF
+fi
 
 # Create .gitignore if it doesn't exist
 if [[ ! -f ".saga/.gitignore" ]]; then
@@ -234,9 +316,18 @@ GITIGNORE_EOF
   echo "Created .saga/.gitignore"
 fi
 
+# Determine current iteration for display
+if [[ "$EXISTING_STATE" == "true" ]] && [[ "$STALE_SESSION" == "true" || "$RESUME_MODE" == "true" ]]; then
+  DISPLAY_ITERATION=$PREVIOUS_ITERATION
+  LOOP_STATUS="RESUMED"
+else
+  DISPLAY_ITERATION=1
+  LOOP_STATUS="ACTIVATED"
+fi
+
 # Output setup message
 cat << EOF
-SAGA Autonomous Loop Activated
+SAGA Autonomous Loop $LOOP_STATUS
 
 Project: $PROJECT
 Branch: $BRANCH
@@ -246,7 +337,7 @@ PM Integration: $PM_PLATFORM
 
 Stories: $PASSING_STORIES/$TOTAL_STORIES passing ($FAILING_STORIES remaining)
 
-Iteration: 1
+Iteration: $DISPLAY_ITERATION
 Max iterations: $(if [[ $MAX_ITERATIONS -gt 0 ]]; then echo $MAX_ITERATIONS; else echo "unlimited"; fi)
 Mode: $EXECUTION_MODE
 Completion: Auto (all stories pass) OR <promise>$COMPLETION_PROMISE</promise>
@@ -263,7 +354,7 @@ Commands:
   /saga status   - Check progress
   /saga cancel   - Stop the loop
 
-Starting execution...
+$(if [[ "$LOOP_STATUS" == "RESUMED" ]]; then echo "Resuming execution..."; else echo "Starting execution..."; fi)
 EOF
 
 # Create or update progress.txt if it doesn't exist

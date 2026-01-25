@@ -19,6 +19,41 @@ if [[ -z "$HOOK_NAME" ]]; then
   exit 1
 fi
 
+# Validate that context is valid JSON and doesn't contain unsubstituted placeholders
+validate_context() {
+  local ctx="$1"
+
+  # Check for common unsubstituted placeholders
+  if echo "$ctx" | grep -qE '\[STORY_ID\]|\[STORY_TITLE\]|\[REASON\]|\[COUNT\]|\[ERRORS_ARRAY\]|\[REQUIREMENTS_ARRAY\]|\[COMMIT_HASH\]|\[FILES_ARRAY\]|\[DURATION\]|\[ITERATION\]|\[BRANCH_NAME\]|\[CRITERIA_ARRAY\]'; then
+    echo "Error: JSON context contains unsubstituted placeholders" >&2
+    echo "Received: $ctx" >&2
+    echo "" >&2
+    echo "The orchestrator must replace ALL placeholders with actual values:" >&2
+    echo "  [STORY_ID] → \"US-001\"" >&2
+    echo "  [STORY_TITLE] → \"Add login feature\"" >&2
+    echo "  [COUNT] → 3 (a number, not quoted)" >&2
+    echo "  [ERRORS_ARRAY] → [\"error1\",\"error2\"] or []" >&2
+    echo "  [REQUIREMENTS_ARRAY] → [\"FR-001\",\"FR-002\"] or []" >&2
+    echo "  [FILES_ARRAY] → [\"src/file.ts\"] or []" >&2
+    echo "  [DURATION] → 45000 (milliseconds, not quoted)" >&2
+    echo "  [ITERATION] → 1 (a number, not quoted)" >&2
+    exit 1
+  fi
+
+  # Validate JSON syntax
+  if ! echo "$ctx" | jq -e . >/dev/null 2>&1; then
+    echo "Error: Invalid JSON in context" >&2
+    echo "Received: $ctx" >&2
+    echo "" >&2
+    echo "Hint: Ensure numeric values are NOT quoted and arrays are valid JSON:" >&2
+    echo "  Good: {\"retryCount\":3,\"errors\":[\"err1\"]}" >&2
+    echo "  Bad:  {\"retryCount\":\"3\",\"errors\":\"[err1]\"}" >&2
+    exit 1
+  fi
+}
+
+validate_context "$CONTEXT"
+
 # Determine script directory and plugin root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
